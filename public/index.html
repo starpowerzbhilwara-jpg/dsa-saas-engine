@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise DSA SaaS Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f0f2f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card { border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+        .bank-card { background: #ffffff; border-left: 5px solid #0d6efd; }
+        .drag-area { border: 2px dashed #0d6efd; border-radius: 10px; background: #eef5ff; text-align: center; padding: 20px; cursor: pointer; }
+    </style>
+</head>
+<body class="p-4">
+    <div class="container-fluid">
+        <h2 class="text-center mb-4 fw-bold text-primary">Enterprise DSA SaaS Portal</h2>
+
+        <!-- LOGIN SECTION -->
+        <div id="authSection" class="row justify-content-center">
+            <div class="col-md-4">
+                <div class="card p-4">
+                    <h4 class="card-title text-center mb-3">Staff / Agent Login</h4>
+                    <form id="loginForm">
+                        <div class="mb-3">
+                            <label class="form-label">Username</label>
+                            <input type="text" id="loginUsername" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password" id="loginPassword" class="form-control" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Login to Dashboard</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN DASHBOARD -->
+        <div id="dashboardSection" class="d-none">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h4>Welcome, <span id="userNameDisplay" class="text-primary"></span> 
+                        <span id="userRoleBadge" class="badge bg-secondary"></span>
+                    </h4>
+                    <small class="text-muted">Location: <span id="userLocationDisplay"></span></small>
+                </div>
+                <button onclick="logout()" class="btn btn-outline-danger btn-sm">Logout</button>
+            </div>
+
+            <!-- STATS CARDS -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card p-3 text-center">
+                        <small class="text-muted">Total Assigned Leads</small>
+                        <h2 id="totalFiles">0</h2>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card p-3 text-center">
+                        <small class="text-muted">Disbursed Loans</small>
+                        <h2 id="disbursedFiles" class="text-success">0</h2>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card p-3 text-center">
+                        <small class="text-muted">Total Earnings / Commission</small>
+                        <h2 id="totalEarnings" class="text-primary">₹0</h2>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABS NAVIGATION -->
+            <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
+                <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-leads">Leads Directory</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-excel">Excel Drag & Drop Upload</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-banks">Bank Locker & SM Details</button></li>
+            </ul>
+
+            <div class="tab-content" id="pills-tabContent">
+                
+                <!-- TAB 1: LEADS DIRECTORY -->
+                <div class="tab-pane fade show active" id="tab-leads">
+                    <div class="card p-4">
+                        <h5>Applications & Leads List</h5>
+                        <div class="table-responsive">
+                            <table class="table table-hover mt-3">
+                                <thead>
+                                    <tr>
+                                        <th>Client Name</th>
+                                        <th>Phone</th>
+                                        <th>Location</th>
+                                        <th>Bank</th>
+                                        <th>Loan Amount</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="appTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: EXCEL BULK UPLOAD -->
+                <div class="tab-pane fade" id="tab-excel">
+                    <div class="card p-4 text-center">
+                        <h5>Upload Leads via Excel File (.xlsx)</h5>
+                        <p class="text-muted small">Excel sheet me columns rakhein: Name, Phone, Location, Bank, Loan Amount</p>
+                        <form id="excelForm" class="mt-3">
+                            <div class="drag-area mb-3">
+                                <input type="file" id="excelFile" accept=".xlsx, .xls" class="form-control" required>
+                            </div>
+                            <button type="submit" class="btn btn-success">Import Excel Leads</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- TAB 3: BANK LOCKER & SM DIRECTORY -->
+                <div class="tab-pane fade" id="tab-banks">
+                    <div class="card p-4 mb-4" id="addBankBox">
+                        <h5>Add/Update Bank Login & SM Contacts (Admin Only)</h5>
+                        <form id="bankConfigForm" class="row g-3">
+                            <div class="col-md-3"><input type="text" id="bankNameInput" class="form-control" placeholder="Bank Name (e.g., HDFC)" required></div>
+                            <div class="col-md-3"><input type="text" id="portalUrlInput" class="form-control" placeholder="Portal URL"></div>
+                            <div class="col-md-3"><input type="text" id="loginIdInput" class="form-control" placeholder="Login ID" required></div>
+                            <div class="col-md-3"><input type="text" id="passwordInput" class="form-control" placeholder="Password" required></div>
+                            <div class="col-md-3"><input type="text" id="smLocationInput" class="form-control" placeholder="SM Location (e.g. Bhilwara)" required></div>
+                            <div class="col-md-3"><input type="text" id="smNameInput" class="form-control" placeholder="SM Name" required></div>
+                            <div class="col-md-3"><input type="text" id="smPhoneInput" class="form-control" placeholder="SM Phone" required></div>
+                            <div class="col-12"><button type="submit" class="btn btn-primary">Save Bank Locker Details</button></div>
+                        </form>
+                    </div>
+
+                    <h5>Bank Credentials & Location-wise SM Directory</h5>
+                    <div class="row mt-3" id="bankCardsContainer"></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- STATUS & PAYOUT MODAL -->
+    <div class="modal fade" id="statusModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content p-3">
+                <div class="modal-header"><h5>Update Lead Status & Payout</h5></div>
+                <div class="modal-body">
+                    <input type="hidden" id="modalLeadId">
+                    <div class="mb-3">
+                        <label>Status</label>
+                        <select id="modalStatusSelect" class="form-select">
+                            <option value="Logged In">Logged In</option>
+                            <option value="Underwriting">Underwriting</option>
+                            <option value="Sanctioned">Sanctioned</option>
+                            <option value="Disbursed">Disbursed</option>
+                            <option value="Rejected">Rejected</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label>Agent Payout (₹)</label>
+                        <input type="number" id="modalAgentPayout" class="form-control" value="0">
+                    </div>
+                    <div class="mb-3">
+                        <label>Caller Payout (₹)</label>
+                        <input type="number" id="modalCallerPayout" class="form-control" value="0">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" onclick="saveStatusUpdate()" class="btn btn-success">Update Status</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentUserRole = '';
+
+        if(localStorage.getItem('token')) { showDashboard(); }
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username: document.getElementById('loginUsername').value,
+                    password: document.getElementById('loginPassword').value
+                })
+            });
+            const data = await res.json();
+            if(data.success) {
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('userName', data.user.name);
+                localStorage.setItem('userRole', data.user.role);
+                localStorage.setItem('userLocation', data.user.location);
+                showDashboard();
+            } else { alert(data.message); }
+        });
+
+        async function showDashboard() {
+            document.getElementById('authSection').classList.add('d-none');
+            document.getElementById('dashboardSection').classList.remove('d-none');
+            document.getElementById('userNameDisplay').innerText = localStorage.getItem('userName');
+            document.getElementById('userRoleBadge').innerText = localStorage.getItem('userRole');
+            document.getElementById('userLocationDisplay').innerText = localStorage.getItem('userLocation');
+            
+            currentUserRole = localStorage.getItem('userRole');
+            if(currentUserRole !== 'MASTER') {
+                document.getElementById('addBankBox').classList.add('d-none');
+            }
+
+            loadDashboardData();
+            loadBankConfigs();
+        }
+
+        async function loadDashboardData() {
+            const res = await fetch('/api/dashboard', {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            const data = await res.json();
+            if(data.success) {
+                document.getElementById('totalFiles').innerText = data.analytics.totalFiles;
+                document.getElementById('disbursedFiles').innerText = data.analytics.disbursedFiles;
+                document.getElementById('totalEarnings').innerText = `₹${data.analytics.totalEarnings}`;
+
+                const tbody = document.getElementById('appTableBody');
+                tbody.innerHTML = '';
+                data.files.forEach(f => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${f.clientName}</td>
+                            <td>${f.clientPhone}</td>
+                            <td><span class="badge bg-light text-dark">${f.location || 'General'}</span></td>
+                            <td>${f.bankName}</td>
+                            <td>₹${f.loanAmount}</td>
+                            <td><span class="badge bg-info">${f.status}</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" onclick="openStatusModal('${f._id}', '${f.status}')">Update</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+        }
+
+        async function loadBankConfigs() {
+            const res = await fetch('/api/bank-config', {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            const data = await res.json();
+            if(data.success) {
+                const container = document.getElementById('bankCardsContainer');
+                container.innerHTML = '';
+                data.banks.forEach(b => {
+                    let smHTML = b.assignedSMs.map(sm => `<li><b>${sm.smName}</b> (${sm.location}): 📞 ${sm.smPhone}</li>`).join('');
+                    container.innerHTML += `
+                        <div class="col-md-4 mb-3">
+                            <div class="card bank-card p-3">
+                                <h5>${b.bankName}</h5>
+                                <p class="mb-1"><b>ID:</b> <code>${b.loginId}</code> | <b>Pass:</b> <code>${b.password}</code></p>
+                                <a href="${b.portalUrl || '#'}" target="_blank" class="btn btn-link btn-sm p-0 mb-2">Portal Link ↗</a>
+                                <hr class="my-2">
+                                <small class="text-muted">Assigned SMs (Sales Managers):</small>
+                                <ul class="small ps-3 mb-0">${smHTML}</ul>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        document.getElementById('excelForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData();
+            formData.append('file', document.getElementById('excelFile').files[0]);
+
+            const res = await fetch('/api/applications/upload-excel', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                body: formData
+            });
+            const data = await res.json();
+            alert(data.message);
+            if(data.success) loadDashboardData();
+        });
+
+        document.getElementById('bankConfigForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const res = await fetch('/api/bank-config', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}` 
+                },
+                body: JSON.stringify({
+                    bankName: document.getElementById('bankNameInput').value,
+                    portalUrl: document.getElementById('portalUrlInput').value,
+                    loginId: document.getElementById('loginIdInput').value,
+                    password: document.getElementById('passwordInput').value,
+                    salesManagers: [{
+                        location: document.getElementById('smLocationInput').value,
+                        smName: document.getElementById('smNameInput').value,
+                        smPhone: document.getElementById('smPhoneInput').value
+                    }]
+                })
+            });
+            const data = await res.json();
+            alert(data.message);
+            if(data.success) loadBankConfigs();
+        });
+
+        function openStatusModal(id, currentStatus) {
+            document.getElementById('modalLeadId').value = id;
+            document.getElementById('modalStatusSelect').value = currentStatus;
+            new bootstrap.Modal(document.getElementById('statusModal')).show();
+        }
+
+        async function saveStatusUpdate() {
+            const id = document.getElementById('modalLeadId').value;
+            const status = document.getElementById('modalStatusSelect').value;
+            const agentPayout = document.getElementById('modalAgentPayout').value;
+            const callerPayout = document.getElementById('modalCallerPayout').value;
+
+            const res = await fetch(`/api/applications/${id}/status`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}` 
+                },
+                body: JSON.stringify({ status, agentPayout, callerPayout })
+            });
+            const data = await res.json();
+            if(data.success) {
+                alert(data.message);
+                location.reload();
+            }
+        }
+
+        function logout() {
+            localStorage.clear();
+            location.reload();
+        }
+    </script>
+</body>
+</html>
