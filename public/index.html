@@ -1,347 +1,424 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enterprise DSA SaaS Portal</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { background-color: #f0f2f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .card { border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
-        .bank-card { background: #ffffff; border-left: 5px solid #0d6efd; }
-        .drag-area { border: 2px dashed #0d6efd; border-radius: 10px; background: #eef5ff; text-align: center; padding: 20px; cursor: pointer; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DSA SaaS Engine - Master Control Portal</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #eef2f5; margin: 0; padding: 20px; }
+    .container { max-width: 1250px; margin: 0 auto; }
+    .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 25px; }
+    h2, h3, h4 { color: #2c3e50; margin-top: 0; }
+    form { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
+    input, select, button, textarea { padding: 10px; font-size: 14px; border: 1px solid #ccc; border-radius: 5px; }
+    input[type="text"], input[type="email"], input[type="password"], input[type="number"] { flex: 1; min-width: 180px; }
+    button { background: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; }
+    button:hover { background: #0056b3; }
+    .btn-success { background: #28a745; }
+    .btn-warning { background: #ffc107; color: #000; }
+    .btn-danger { background: #dc3545; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: center; font-size: 13px; }
+    th { background: #2c3e50; color: white; }
+    .badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; color: white; font-size: 11px; }
+    .bg-green { background: #28a745; }
+    .bg-yellow { background: #ffc107; color: #000; }
+    .bg-blue { background: #17a2b8; }
+    #adminDashboard { display: none; }
+    .sm-card { background: #f8f9fa; border-left: 4px solid #28a745; padding: 12px; margin-top: 10px; border-radius: 4px; }
+  </style>
 </head>
-<body class="p-4">
-    <div class="container-fluid">
-        <h2 class="text-center mb-4 fw-bold text-primary">Enterprise DSA SaaS Portal</h2>
+<body>
+  <div class="container">
 
-        <!-- LOGIN SECTION -->
-        <div id="authSection" class="row justify-content-center">
-            <div class="col-md-4">
-                <div class="card p-4">
-                    <h4 class="card-title text-center mb-3">Staff / Agent Login</h4>
-                    <form id="loginForm">
-                        <div class="mb-3">
-                            <label class="form-label">Username</label>
-                            <input type="text" id="loginUsername" class="form-control" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Password</label>
-                            <input type="password" id="loginPassword" class="form-control" required>
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100">Login to Dashboard</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <!-- MAIN DASHBOARD -->
-        <div id="dashboardSection" class="d-none">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h4>Welcome, <span id="userNameDisplay" class="text-primary"></span> 
-                        <span id="userRoleBadge" class="badge bg-secondary"></span>
-                    </h4>
-                    <small class="text-muted">Location: <span id="userLocationDisplay"></span></small>
-                </div>
-                <button onclick="logout()" class="btn btn-outline-danger btn-sm">Logout</button>
-            </div>
-
-            <!-- STATS CARDS -->
-            <div class="row mb-4">
-                <div class="col-md-4">
-                    <div class="card p-3 text-center">
-                        <small class="text-muted">Total Assigned Leads</small>
-                        <h2 id="totalFiles">0</h2>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card p-3 text-center">
-                        <small class="text-muted">Disbursed Loans</small>
-                        <h2 id="disbursedFiles" class="text-success">0</h2>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card p-3 text-center">
-                        <small class="text-muted">Total Earnings / Commission</small>
-                        <h2 id="totalEarnings" class="text-primary">₹0</h2>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TABS NAVIGATION -->
-            <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
-                <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-leads">Leads Directory</button></li>
-                <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-excel">Excel Drag & Drop Upload</button></li>
-                <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-banks">Bank Locker & SM Details</button></li>
-            </ul>
-
-            <div class="tab-content" id="pills-tabContent">
-                
-                <!-- TAB 1: LEADS DIRECTORY -->
-                <div class="tab-pane fade show active" id="tab-leads">
-                    <div class="card p-4">
-                        <h5>Applications & Leads List</h5>
-                        <div class="table-responsive">
-                            <table class="table table-hover mt-3">
-                                <thead>
-                                    <tr>
-                                        <th>Client Name</th>
-                                        <th>Phone</th>
-                                        <th>Location</th>
-                                        <th>Bank</th>
-                                        <th>Loan Amount</th>
-                                        <th>Status</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="appTableBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- TAB 2: EXCEL BULK UPLOAD -->
-                <div class="tab-pane fade" id="tab-excel">
-                    <div class="card p-4 text-center">
-                        <h5>Upload Leads via Excel File (.xlsx)</h5>
-                        <p class="text-muted small">Excel sheet me columns rakhein: Name, Phone, Location, Bank, Loan Amount</p>
-                        <form id="excelForm" class="mt-3">
-                            <div class="drag-area mb-3">
-                                <input type="file" id="excelFile" accept=".xlsx, .xls" class="form-control" required>
-                            </div>
-                            <button type="submit" class="btn btn-success">Import Excel Leads</button>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- TAB 3: BANK LOCKER & SM DIRECTORY -->
-                <div class="tab-pane fade" id="tab-banks">
-                    <div class="card p-4 mb-4" id="addBankBox">
-                        <h5>Add/Update Bank Login & SM Contacts (Admin Only)</h5>
-                        <form id="bankConfigForm" class="row g-3">
-                            <div class="col-md-3"><input type="text" id="bankNameInput" class="form-control" placeholder="Bank Name (e.g., HDFC)" required></div>
-                            <div class="col-md-3"><input type="text" id="portalUrlInput" class="form-control" placeholder="Portal URL"></div>
-                            <div class="col-md-3"><input type="text" id="loginIdInput" class="form-control" placeholder="Login ID" required></div>
-                            <div class="col-md-3"><input type="text" id="passwordInput" class="form-control" placeholder="Password" required></div>
-                            <div class="col-md-3"><input type="text" id="smLocationInput" class="form-control" placeholder="SM Location (e.g. Bhilwara)" required></div>
-                            <div class="col-md-3"><input type="text" id="smNameInput" class="form-control" placeholder="SM Name" required></div>
-                            <div class="col-md-3"><input type="text" id="smPhoneInput" class="form-control" placeholder="SM Phone" required></div>
-                            <div class="col-12"><button type="submit" class="btn btn-primary">Save Bank Locker Details</button></div>
-                        </form>
-                    </div>
-
-                    <h5>Bank Credentials & Location-wise SM Directory</h5>
-                    <div class="row mt-3" id="bankCardsContainer"></div>
-                </div>
-
-            </div>
-        </div>
+    <!-- LOGIN PANEL -->
+    <div id="loginPanel" class="card" style="max-width: 400px; margin: 80px auto;">
+      <h2 style="text-align: center;">🔒 Admin Portal Login</h2>
+      <form id="loginForm" style="flex-direction: column;">
+        <input type="text" id="loginEmail" placeholder="Admin Username / Email" required>
+        <input type="password" id="loginPassword" placeholder="Password" required>
+        <button type="submit" class="btn-success">Login to Dashboard</button>
+      </form>
     </div>
 
-    <!-- STATUS & PAYOUT MODAL -->
-    <div class="modal fade" id="statusModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content p-3">
-                <div class="modal-header"><h5>Update Lead Status & Payout</h5></div>
-                <div class="modal-body">
-                    <input type="hidden" id="modalLeadId">
-                    <div class="mb-3">
-                        <label>Status</label>
-                        <select id="modalStatusSelect" class="form-select">
-                            <option value="Logged In">Logged In</option>
-                            <option value="Underwriting">Underwriting</option>
-                            <option value="Sanctioned">Sanctioned</option>
-                            <option value="Disbursed">Disbursed</option>
-                            <option value="Rejected">Rejected</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label>Agent Payout (₹)</label>
-                        <input type="number" id="modalAgentPayout" class="form-control" value="0">
-                    </div>
-                    <div class="mb-3">
-                        <label>Caller Payout (₹)</label>
-                        <input type="number" id="modalCallerPayout" class="form-control" value="0">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" onclick="saveStatusUpdate()" class="btn btn-success">Update Status</button>
-                </div>
-            </div>
+    <!-- MAIN ADMIN DASHBOARD (AFTER LOGIN) -->
+    <div id="adminDashboard">
+      <div style="display: flex; justify-content: space-between; align-items: center;" class="card">
+        <h2>🛡️ Master Admin & DSA Control Panel</h2>
+        <button id="logoutBtn" class="btn-danger">Logout</button>
+      </div>
+
+      <!-- SECTION 1: ALL INDIA BANK / NBFC SALES MANAGER (SM) DIRECTORY & ELIGIBILITY MATRIX -->
+      <div class="card" style="border-top: 4px solid #28a745;">
+        <h3>👔 1. All India Bank / NBFC Sales Manager (SM) Directory & Eligibility Rules</h3>
+        
+        <div style="background: #eef9f1; padding: 15px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #c3e6cb;">
+          <h4>📤 Bulk Excel Upload All India SM List</h4>
+          <p style="font-size: 12px; color: #555;">Excel columns: <b>Bank Name, State, District, SM Name, SM Phone, SM Email, Min CIBIL, Min Salary, Eligibility Criteria</b></p>
+          <form id="smExcelUploadForm" style="margin: 0;">
+            <input type="file" id="smExcelFile" accept=".xlsx, .csv" required style="background: white;">
+            <button type="submit" class="btn-success">⚡ Import SM Master Excel Sheet</button>
+          </form>
         </div>
+
+        <!-- DSA AUTO-LOOKUP TOOL -->
+        <div style="background: #e9ecef; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+          <h4>🔍 Live DSA Auto-Lookup: Find Bank SM & Eligibility Rules</h4>
+          <form id="lookupForm" style="margin: 0;">
+            <input type="text" id="searchBank" placeholder="Enter Bank Name (e.g. HDFC)">
+            <input type="text" id="searchState" placeholder="Enter State (e.g. Rajasthan)">
+            <input type="text" id="searchDistrict" placeholder="Enter District/City (e.g. Jaipur)">
+            <button type="submit" class="btn-warning">🔎 Auto Find SM & Policy</button>
+          </form>
+          <div id="lookupResults"></div>
+        </div>
+
+        <h4>📋 Master Sales Managers (SM) & Bank Eligibility Directory</h4>
+        <table style="max-height: 300px; overflow-y: auto; display: block;">
+          <thead>
+            <tr>
+              <th>Bank / NBFC</th>
+              <th>State</th>
+              <th>District / City</th>
+              <th>Sales Manager (SM) Name</th>
+              <th>Contact Phone</th>
+              <th>Email</th>
+              <th>Min CIBIL</th>
+              <th>Min Salary</th>
+              <th>Eligibility Policy</th>
+            </tr>
+          </thead>
+          <tbody id="smTableBody"></tbody>
+        </table>
+      </div>
+
+      <!-- SECTION 2: CREATE MULTI-USER / AGENTS -->
+      <div class="card">
+        <h3>👤 2. Create Multi-User / Agent ID</h3>
+        <form id="createStaffForm">
+          <input type="text" id="name" placeholder="Full Name" required>
+          <input type="email" id="email" placeholder="Unique Email / Login ID" required>
+          <input type="text" id="phone" placeholder="Phone Number" required>
+          <input type="password" id="password" placeholder="Password" required>
+          <select id="role">
+            <option value="Agent">Agent</option>
+            <option value="Staff">Calling Staff</option>
+            <option value="Manager">Manager</option>
+          </select>
+          <input type="text" id="city" placeholder="City & State">
+          <button type="submit">+ Create User</button>
+        </form>
+
+        <h4>👥 Registered Multi-Users & Agents</h4>
+        <table>
+          <thead>
+            <tr>
+              <th>Agent Code</th>
+              <th>Name</th>
+              <th>Email / ID</th>
+              <th>Role</th>
+              <th>Location</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="staffTableBody"></tbody>
+        </table>
+      </div>
+
+      <!-- SECTION 3: LEAD ENTRY & EXCEL BULK UPLOAD -->
+      <div class="card">
+        <h3>📊 3. DSA Calling Data & Bulk Excel Upload</h3>
+        
+        <form id="leadForm">
+          <input type="text" id="custName" placeholder="Customer Name" required>
+          <input type="text" id="custPhone" placeholder="Phone" required>
+          <input type="text" id="panCard" placeholder="PAN Card" required>
+          <input type="number" id="cibilScore" placeholder="CIBIL (e.g. 780)">
+          <select id="selectedBank" required>
+            <option value="">Select Bank</option>
+            <option value="HDFC Bank">HDFC Bank</option>
+            <option value="ICICI Bank">ICICI Bank</option>
+            <option value="SBI">SBI Bank</option>
+            <option value="Bajaj Finance">Bajaj Finance</option>
+          </select>
+          <input type="number" id="loanAmount" placeholder="Loan Amount (₹)" required>
+          <button type="submit" class="btn-success">+ Add Single Lead</button>
+        </form>
+
+        <div style="background: #e9ecef; padding: 15px; border-radius: 6px; margin-top: 15px;">
+          <label><b>📤 Bulk Excel Calling Import (.xlsx / .csv):</b></label><br><br>
+          <form id="excelUploadForm" style="margin: 0;">
+            <input type="file" id="excelFile" accept=".xlsx, .csv" required style="background: white;">
+            <button type="submit" class="btn-success">⚡ Upload Calling Sheet</button>
+          </form>
+        </div>
+
+        <h4 style="margin-top: 20px;">📋 Active Calling Leads</h4>
+        <table>
+          <thead>
+            <tr>
+              <th>Customer Name</th>
+              <th>Phone</th>
+              <th>Bank</th>
+              <th>Loan Amount</th>
+              <th>CIBIL</th>
+              <th>CIBIL Status</th>
+              <th>Lead Status</th>
+            </tr>
+          </thead>
+          <tbody id="applicationTableBody"></tbody>
+        </table>
+      </div>
+
+      <!-- SECTION 4: DSA EARNINGS & PAYOUT SHEET -->
+      <div class="card">
+        <h3>💰 4. DSA Earnings & Payout Ledger Sheet</h3>
+        <form id="payoutForm">
+          <input type="text" id="payoutDsaId" placeholder="DSA / User MongoDB ID" required>
+          <input type="text" id="payoutMonth" placeholder="Month (e.g. July 2026)" required>
+          <input type="number" id="payoutDisbursed" placeholder="Total Disbursed (₹)" required>
+          <input type="number" id="payoutCommRate" placeholder="Commission %" step="0.1" required>
+          <input type="number" id="payoutPaid" placeholder="Already Paid (₹)">
+          <select id="payoutStatus">
+            <option value="Pending">Pending</option>
+            <option value="Processing">Processing</option>
+            <option value="Paid">Paid</option>
+            <option value="Hold">Hold</option>
+          </select>
+          <button type="submit" class="btn-success">💾 Update Payout Sheet</button>
+        </form>
+
+        <h4>📑 Payout Ledger History</h4>
+        <table>
+          <thead>
+            <tr>
+              <th>Agent Name / Code</th>
+              <th>Month</th>
+              <th>Disbursed Amount</th>
+              <th>Comm. Rate</th>
+              <th>Total Earning</th>
+              <th>Paid Amount</th>
+              <th>Pending Payout</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="payoutTableBody"></tbody>
+        </table>
+      </div>
+
     </div>
+  </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        let currentUserRole = '';
+  <script>
+    // --- AUTH LOGIN ---
+    document.getElementById('loginForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      document.getElementById('loginPanel').style.display = 'none';
+      document.getElementById('adminDashboard').style.display = 'block';
+      loadAllDashboardData();
+    });
 
-        if(localStorage.getItem('token')) { showDashboard(); }
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      document.getElementById('adminDashboard').style.display = 'none';
+      document.getElementById('loginPanel').style.display = 'block';
+    });
 
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const res = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username: document.getElementById('loginUsername').value,
-                    password: document.getElementById('loginPassword').value
-                })
-            });
-            const data = await res.json();
-            if(data.success) {
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('userName', data.user.name);
-                localStorage.setItem('userRole', data.user.role);
-                localStorage.setItem('userLocation', data.user.location);
-                showDashboard();
-            } else { alert(data.message); }
-        });
+    function loadAllDashboardData() {
+      loadSMList();
+      loadStaff();
+      loadApplications();
+      loadPayouts();
+    }
 
-        async function showDashboard() {
-            document.getElementById('authSection').classList.add('d-none');
-            document.getElementById('dashboardSection').classList.remove('d-none');
-            document.getElementById('userNameDisplay').innerText = localStorage.getItem('userName');
-            document.getElementById('userRoleBadge').innerText = localStorage.getItem('userRole');
-            document.getElementById('userLocationDisplay').innerText = localStorage.getItem('userLocation');
-            
-            currentUserRole = localStorage.getItem('userRole');
-            if(currentUserRole !== 'MASTER') {
-                document.getElementById('addBankBox').classList.add('d-none');
-            }
-
-            loadDashboardData();
-            loadBankConfigs();
+    // --- 1. SM & ELIGIBILITY MATRIX HANDLERS ---
+    async function loadSMList() {
+      try {
+        const res = await fetch('/api/sm/all');
+        const data = await res.json();
+        if(data.success) {
+          document.getElementById('smTableBody').innerHTML = data.sms.map(sm => `
+            <tr>
+              <td><b>${sm.bankName}</b></td>
+              <td>${sm.state}</td>
+              <td>${sm.district}</td>
+              <td><b>${sm.smName}</b></td>
+              <td><a href="tel:${sm.smPhone}">${sm.smPhone}</a></td>
+              <td>${sm.smEmail || 'N/A'}</td>
+              <td><span class="badge bg-yellow">${sm.minCibil}+</span></td>
+              <td>₹${sm.minSalary}</td>
+              <td style="font-size: 11px;">${sm.eligibilityNotes}</td>
+            </tr>
+          `).join('');
         }
+      } catch(e) { console.error(e); }
+    }
 
-        async function loadDashboardData() {
-            const res = await fetch('/api/dashboard', {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-            });
-            const data = await res.json();
-            if(data.success) {
-                document.getElementById('totalFiles').innerText = data.analytics.totalFiles;
-                document.getElementById('disbursedFiles').innerText = data.analytics.disbursedFiles;
-                document.getElementById('totalEarnings').innerText = `₹${data.analytics.totalEarnings}`;
+    document.getElementById('smExcelUploadForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fileInput = document.getElementById('smExcelFile');
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
 
-                const tbody = document.getElementById('appTableBody');
-                tbody.innerHTML = '';
-                data.files.forEach(f => {
-                    tbody.innerHTML += `
-                        <tr>
-                            <td>${f.clientName}</td>
-                            <td>${f.clientPhone}</td>
-                            <td><span class="badge bg-light text-dark">${f.location || 'General'}</span></td>
-                            <td>${f.bankName}</td>
-                            <td>₹${f.loanAmount}</td>
-                            <td><span class="badge bg-info">${f.status}</span></td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-primary" onclick="openStatusModal('${f._id}', '${f.status}')">Update</button>
-                            </td>
-                        </tr>
-                    `;
-                });
-            }
+      const res = await fetch('/api/sm/bulk-upload-sm', { method: 'POST', body: formData });
+      const data = await res.json();
+      if(data.success) { alert(data.message); loadSMList(); }
+      else { alert('Upload Error: ' + data.message); }
+    });
+
+    document.getElementById('lookupForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const bank = document.getElementById('searchBank').value;
+      const state = document.getElementById('searchState').value;
+      const district = document.getElementById('searchDistrict').value;
+
+      const res = await fetch(`/api/sm/lookup?bankName=${bank}&state=${state}&district=${district}`);
+      const data = await res.json();
+      const resultsDiv = document.getElementById('lookupResults');
+
+      if(data.success && data.smList.length > 0) {
+        resultsDiv.innerHTML = data.smList.map(sm => `
+          <div class="sm-card">
+            <h4 style="margin:0; color:#28a745;">🏦 ${sm.bankName} - SM Details (${sm.district}, ${sm.state})</h4>
+            <p style="margin:5px 0;"><b>Sales Manager:</b> ${sm.smName} | <b>Phone:</b> <a href="tel:${sm.smPhone}">${sm.smPhone}</a> | <b>Email:</b> ${sm.smEmail || 'N/A'}</p>
+            <p style="margin:5px 0; font-size:12px; color:#333;"><b>Eligibility Rules:</b> Min CIBIL: <b>${sm.minCibil}</b> | Min Salary: <b>₹${sm.minSalary}</b> | Policy: ${sm.eligibilityNotes}</p>
+          </div>
+        `).join('');
+      } else {
+        resultsDiv.innerHTML = `<div style="padding:10px; color:red;">No SM found for selected bank/location criteria.</div>`;
+      }
+    });
+
+    // --- 2. STAFF HANDLERS ---
+    async function loadStaff() {
+      try {
+        const res = await fetch('/api/users/all-staff');
+        const data = await res.json();
+        if(data.success) {
+          document.getElementById('staffTableBody').innerHTML = data.staff.map(user => `
+            <tr>
+              <td><b>${user.agentCode || 'N/A'}</b></td>
+              <td>${user.name}</td>
+              <td>${user.email || 'N/A'}</td>
+              <td><span class="badge bg-blue">${user.role}</span></td>
+              <td>${user.city || 'India'}</td>
+              <td><span class="badge bg-green">Active</span></td>
+            </tr>
+          `).join('');
         }
+      } catch(e) { console.error(e); }
+    }
 
-        async function loadBankConfigs() {
-            const res = await fetch('/api/bank-config', {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-            });
-            const data = await res.json();
-            if(data.success) {
-                const container = document.getElementById('bankCardsContainer');
-                container.innerHTML = '';
-                data.banks.forEach(b => {
-                    let smHTML = b.assignedSMs.map(sm => `<li><b>${sm.smName}</b> (${sm.location}): 📞 ${sm.smPhone}</li>`).join('');
-                    container.innerHTML += `
-                        <div class="col-md-4 mb-3">
-                            <div class="card bank-card p-3">
-                                <h5>${b.bankName}</h5>
-                                <p class="mb-1"><b>ID:</b> <code>${b.loginId}</code> | <b>Pass:</b> <code>${b.password}</code></p>
-                                <a href="${b.portalUrl || '#'}" target="_blank" class="btn btn-link btn-sm p-0 mb-2">Portal Link ↗</a>
-                                <hr class="my-2">
-                                <small class="text-muted">Assigned SMs (Sales Managers):</small>
-                                <ul class="small ps-3 mb-0">${smHTML}</ul>
-                            </div>
-                        </div>
-                    `;
-                });
-            }
+    document.getElementById('createStaffForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        name: document.getElementById('name').value,
+        email: document.getElementById('email').value,
+        phone: document.getElementById('phone').value,
+        password: document.getElementById('password').value,
+        role: document.getElementById('role').value,
+        city: document.getElementById('city').value
+      };
+      const res = await fetch('/api/users/create-staff', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if(data.success) { alert('User Created Successfully!'); loadStaff(); }
+    });
+
+    // --- 3. LEAD & CALLING HANDLERS ---
+    async function loadApplications() {
+      try {
+        const res = await fetch('/api/applications/all');
+        const data = await res.json();
+        if(data.success) {
+          document.getElementById('applicationTableBody').innerHTML = data.applications.map(app => `
+            <tr>
+              <td>${app.customerName}</td>
+              <td>${app.customerPhone}</td>
+              <td>${app.selectedBank}</td>
+              <td>₹${app.loanAmount}</td>
+              <td>${app.cibilScore || 'N/A'}</td>
+              <td><span class="badge ${app.cibilStatus === 'Verified' ? 'bg-green' : 'bg-yellow'}">${app.cibilStatus}</span></td>
+              <td><span class="badge bg-blue">${app.applicationStatus}</span></td>
+            </tr>
+          `).join('');
         }
+      } catch(e) { console.error(e); }
+    }
 
-        document.getElementById('excelForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData();
-            formData.append('file', document.getElementById('excelFile').files[0]);
+    document.getElementById('leadForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        customerName: document.getElementById('custName').value,
+        customerPhone: document.getElementById('custPhone').value,
+        panCard: document.getElementById('panCard').value,
+        cibilScore: document.getElementById('cibilScore').value,
+        selectedBank: document.getElementById('selectedBank').value,
+        loanAmount: document.getElementById('loanAmount').value
+      };
+      const res = await fetch('/api/applications/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if(data.success) { alert('Lead Created!'); loadApplications(); }
+    });
 
-            const res = await fetch('/api/applications/upload-excel', {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-                body: formData
-            });
-            const data = await res.json();
-            alert(data.message);
-            if(data.success) loadDashboardData();
-        });
+    document.getElementById('excelUploadForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fileInput = document.getElementById('excelFile');
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
 
-        document.getElementById('bankConfigForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const res = await fetch('/api/bank-config', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}` 
-                },
-                body: JSON.stringify({
-                    bankName: document.getElementById('bankNameInput').value,
-                    portalUrl: document.getElementById('portalUrlInput').value,
-                    loginId: document.getElementById('loginIdInput').value,
-                    password: document.getElementById('passwordInput').value,
-                    salesManagers: [{
-                        location: document.getElementById('smLocationInput').value,
-                        smName: document.getElementById('smNameInput').value,
-                        smPhone: document.getElementById('smPhoneInput').value
-                    }]
-                })
-            });
-            const data = await res.json();
-            alert(data.message);
-            if(data.success) loadBankConfigs();
-        });
+      const res = await fetch('/api/applications/bulk-upload', { method: 'POST', body: formData });
+      const data = await res.json();
+      if(data.success) { alert(data.message); loadApplications(); }
+      else { alert('Upload Error: ' + data.message); }
+    });
 
-        function openStatusModal(id, currentStatus) {
-            document.getElementById('modalLeadId').value = id;
-            document.getElementById('modalStatusSelect').value = currentStatus;
-            new bootstrap.Modal(document.getElementById('statusModal')).show();
+    // --- 4. PAYOUT HANDLERS ---
+    async function loadPayouts() {
+      try {
+        const res = await fetch('/api/payouts/all');
+        const data = await res.json();
+        if(data.success) {
+          document.getElementById('payoutTableBody').innerHTML = data.payouts.map(p => `
+            <tr>
+              <td>${p.dsaId ? p.dsaId.name + ' (' + (p.dsaId.agentCode || 'N/A') + ')' : 'N/A'}</td>
+              <td>${p.month}</td>
+              <td>₹${p.totalDisbursedAmount}</td>
+              <td>${p.commissionRate}%</td>
+              <td><b>₹${p.totalEarning}</b></td>
+              <td>₹${p.paidAmount}</td>
+              <td><b style="color:red;">₹${p.pendingAmount}</b></td>
+              <td><span class="badge ${p.payoutStatus === 'Paid' ? 'bg-green' : 'bg-yellow'}">${p.payoutStatus}</span></td>
+            </tr>
+          `).join('');
         }
+      } catch(e) { console.error(e); }
+    }
 
-        async function saveStatusUpdate() {
-            const id = document.getElementById('modalLeadId').value;
-            const status = document.getElementById('modalStatusSelect').value;
-            const agentPayout = document.getElementById('modalAgentPayout').value;
-            const callerPayout = document.getElementById('modalCallerPayout').value;
-
-            const res = await fetch(`/api/applications/${id}/status`, {
-                method: 'PUT',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}` 
-                },
-                body: JSON.stringify({ status, agentPayout, callerPayout })
-            });
-            const data = await res.json();
-            if(data.success) {
-                alert(data.message);
-                location.reload();
-            }
-        }
-
-        function logout() {
-            localStorage.clear();
-            location.reload();
-        }
-    </script>
+    document.getElementById('payoutForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        dsaId: document.getElementById('payoutDsaId').value,
+        month: document.getElementById('payoutMonth').value,
+        totalDisbursedAmount: document.getElementById('payoutDisbursed').value,
+        commissionRate: document.getElementById('payoutCommRate').value,
+        paidAmount: document.getElementById('payoutPaid').value,
+        payoutStatus: document.getElementById('payoutStatus').value
+      };
+      const res = await fetch('/api/payouts/update-sheet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if(data.success) { alert('Payout Ledger Saved!'); loadPayouts(); }
+    });
+  </script>
 </body>
 </html>

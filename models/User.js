@@ -1,23 +1,28 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
     name: { type: String, required: true },
-    username: { type: String, required: true, unique: true },
+    email: { type: String, required: true, unique: true }, 
+    phone: { type: String },
     password: { type: String, required: true },
     role: { 
         type: String, 
-        enum: ['MASTER', 'DSA_AGENT', 'CALLING_STAFF'], 
-        default: 'DSA_AGENT' 
+        enum: ['MASTER', 'Admin', 'DSA', 'Sub-DSA', 'Agent', 'Telecaller', 'Customer'], 
+        default: 'Agent' 
     },
-    phone: { type: String },
-    panCard: { type: String },
-    location: { type: String, default: 'All' }, // E.g., Jaipur, Bhilwara, Delhi
-    bankDetails: {
-        accountNumber: { type: String },
-        ifscCode: { type: String },
-        bankName: { type: String }
-    },
-    utmLink: { type: String }
-}, { timestamps: true });
+    city: { type: String },
+    state: { type: String },
+    agentCode: { type: String }, 
+    isActive: { type: Boolean, default: true },
+    createdAt: { type: Date, default: Date.now }
+});
 
-module.exports = mongoose.model('User', userSchema);
+userSchema.pre('save', async function() {
+    if (!this.isModified('password')) return;
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+});
+
+// Ye line sirf ek hi baar honi chahiye poori file me
+module.exports = mongoose.models.User || mongoose.model('User', userSchema);
