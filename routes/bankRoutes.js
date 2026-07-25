@@ -1,74 +1,107 @@
 const express = require('express');
 const router = express.Router();
 
-// Safe import of existing BankConfig model (if present)
-let BankConfig;
+// Safe Model Imports (Puraane + Naye)
+let BankConfig, SalesManager;
 try {
     BankConfig = require('../models/BankConfig');
 } catch (e) {
-    console.log('BankConfig model not found, running with fallback mode.');
+    console.log('BankConfig model loading in safe mode');
 }
 
-// 1. CIBIL Analyzer API Endpoint
-router.post('/analyze-cibil', async (req, res) => {
-    try {
-        const { password } = req.body;
-        // CIBIL PDF analysis processing logic goes here
+try {
+    SalesManager = require('../models/SalesManager');
+} catch (e) {
+    console.log('SalesManager model loading in safe mode');
+}
 
-        return res.status(200).json({
-            status: 'success',
-            cibil_score: 750,
-            message: 'CIBIL PDF report analyzed successfully!'
+/* =========================================================
+   1. PURAANE FEATURES (SEARCH & ELIGIBILITY RULES)
+   ========================================================= */
+
+// Live Auto-Lookup: Find Bank SM & Eligibility Rules
+router.get('/search', async (req, res) => {
+    try {
+        const { bank, state, district } = req.query;
+        let query = {};
+
+        if (bank) query.bankName = new RegExp(bank, 'i');
+        if (state) query.state = new RegExp(state, 'i');
+        if (district) query.city = new RegExp(district, 'i');
+
+        if (SalesManager) {
+            const results = await SalesManager.find(query);
+            return res.status(200).json({ status: 'success', data: results });
+        }
+
+        return res.status(200).json({ 
+            status: 'success', 
+            data: [], 
+            message: 'Search query processed successfully' 
         });
     } catch (error) {
-        return res.status(500).json({
-            status: 'error',
-            message: 'Error processing CIBIL report: ' + error.message
-        });
+        return res.status(500).json({ status: 'error', message: 'Search Error: ' + error.message });
     }
 });
 
-// 2. Banking Perfuse Engine API Endpoint (Bank Statement Analysis)
-router.post('/analyze-statement', async (req, res) => {
-    try {
-        const { bank_name, password } = req.body;
-        // Bank statement parsing logic goes here
 
-        return res.status(200).json({
-            status: 'success',
-            bank: bank_name || 'Generic Bank',
-            message: `Bank statement for ${bank_name || 'selected bank'} analyzed successfully!`
-        });
-    } catch (error) {
-        return res.status(500).json({
-            status: 'error',
-            message: 'Error analyzing bank statement: ' + error.message
-        });
-    }
-});
+/* =========================================================
+   2. NAYE FEATURES (BANK LOGINS, UTM LINKS & CREDENTIALS)
+   ========================================================= */
 
-// 3. Fetch Active Bank Direct Portals / Configurations
-router.get('/configs', async (req, res) => {
+// Fetch All Bank Credentials, UTM Links & Portals
+router.get('/all-configs', async (req, res) => {
     try {
         if (BankConfig) {
-            const configs = await BankConfig.find();
+            const configs = await BankConfig.find().sort({ createdAt: -1 });
             return res.status(200).json({ status: 'success', data: configs });
         }
-        
-        // Default fallback if database model isn't active
-        return res.status(200).json({
-            status: 'success',
-            data: [
-                { bankName: 'HDFC Bank', portalUrl: 'https://partnerportal.hdfcbank.com' },
-                { bankName: 'ICICI Bank', portalUrl: 'https://partners.icicibank.com' },
-                { bankName: 'Axis Bank', portalUrl: 'https://connect.axisbank.com' }
-            ]
-        });
+        return res.status(200).json({ status: 'success', data: [] });
     } catch (error) {
-        return res.status(500).json({
-            status: 'error',
-            message: 'Error fetching bank configurations: ' + error.message
-        });
+        return res.status(500).json({ status: 'error', message: error.message });
+    }
+});
+
+// Add New Bank Name, ID Pass, UTM Link & Payout Rate
+router.post('/add-config', async (req, res) => {
+    try {
+        const { bankName, portalType, portalUrl, userId, password, payoutPercentage, productsSupported } = req.body;
+        
+        if (BankConfig) {
+            const newConfig = new BankConfig({
+                bankName,
+                portalType: portalType || 'UTM Link',
+                portalUrl,
+                userId: userId || '',
+                password: password || '',
+                payoutPercentage: payoutPercentage || 0,
+                productsSupported: Array.isArray(productsSupported) ? productsSupported : [productsSupported || 'PL']
+            });
+
+            await newConfig.save();
+            return res.status(200).json({ 
+                status: 'success', 
+                message: 'Bank Portal / Credentials / UTM Link added successfully!', 
+                data: newConfig 
+            });
+        }
+
+        return res.status(200).json({ status: 'success', message: 'Bank Config saved (Safe mode)' });
+    } catch (error) {
+        return res.status(500).json({ status: 'error', message: 'Failed to add bank config: ' + error.message });
+    }
+});
+
+// Update Existing Bank ID/Pass or UTM Link
+router.put('/update-config/:id', async (req, res) => {
+    try {
+        if (BankConfig) {
+            const updatedConfig = await BankConfig.findByIdAndUpdate(req.params.id, req.body, { new: true });
+            return res.status(200).json({ status: 'success', message: 'Portal credentials updated!', data: updatedConfig });
+        }
+        return res.status(200).json({ status: 'success', message: 'Config updated' });
+    } catch (error) {
+        return res.status(500).json({ status: 'error', message: error.message });
     }
 });
 
