@@ -20,39 +20,77 @@
         <button class="btn btn-outline-danger btn-sm"><i class="bi bi-box-arrow-right"></i> Logout</button>
     </div>
 
-    <!-- Navigation Tabs (Sare Buttons Ab Ek Perfect Line Me Aayenge) -->
+    <!-- Navigation Tabs Bar -->
     <ul class="nav nav-pills mb-4 bg-white p-2 rounded shadow-sm d-flex flex-wrap gap-2" id="pills-tab" role="tablist">
         <li class="nav-item">
-            <button class="nav-link active" id="tab-sm-btn" data-bs-toggle="pill" data-bs-target="#tab-sm"><i class="bi bi-people-fill"></i> SM Directory & Bulk Upload</button>
+            <button class="nav-link active" id="tab-apply-btn" data-bs-toggle="pill" data-bs-target="#tab-apply"><i class="bi bi-cpu-fill"></i> Smart Apply & Eligibility</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="tab-sm-btn" data-bs-toggle="pill" data-bs-target="#tab-sm"><i class="bi bi-people-fill"></i> SM Directory & Upload</button>
         </li>
         <li class="nav-item">
             <button class="nav-link" id="tab-leads-btn" data-bs-toggle="pill" data-bs-target="#tab-leads"><i class="bi bi-telephone-outbound-fill"></i> Calling Data & Leads</button>
         </li>
         <li class="nav-item">
-            <button class="nav-link" id="tab-banks-btn" data-bs-toggle="pill" data-bs-target="#tab-banks"><i class="bi bi-bank"></i> Bank Links & Passwords</button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link" id="tab-users-btn" data-bs-toggle="pill" data-bs-target="#tab-users"><i class="bi bi-person-plus-fill"></i> Agent / Multi-User ID</button>
+            <button class="nav-link" id="tab-banks-btn" data-bs-toggle="pill" data-bs-target="#tab-banks"><i class="bi bi-bank"></i> Bank Links & Credentials</button>
         </li>
         <li class="nav-item">
             <button class="nav-link" id="tab-payouts-btn" data-bs-toggle="pill" data-bs-target="#tab-payouts"><i class="bi bi-receipt"></i> Bank Payouts & Invoices</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="tab-users-btn" data-bs-toggle="pill" data-bs-target="#tab-users"><i class="bi bi-person-plus-fill"></i> Agent / Users</button>
         </li>
     </ul>
 
     <!-- Tab Contents -->
     <div class="tab-content" id="pills-tabContent">
 
-        <!-- TAB 1: SM DIRECTORY & BULK UPLOAD -->
-        <div class="tab-pane fade show active" id="tab-sm">
+        <!-- TAB 1: SMART APPLY, CAM & AUTO SM FETCH -->
+        <div class="tab-pane fade show active" id="tab-apply">
+            <!-- Step 1: CAM Analysis -->
+            <div class="card card-custom p-4 mb-4">
+                <h5 class="fw-bold text-primary"><i class="bi bi-calculator-fill"></i> Step 1: Bank Statement Perfuse Analysis & CAM Eligibility</h5>
+                <form id="eligibilityForm" class="row g-3 mt-1">
+                    <div class="col-md-3"><input type="number" id="camSalary" class="form-control" placeholder="Monthly Net Salary (₹)" required></div>
+                    <div class="col-md-3"><input type="number" id="camEmi" class="form-control" placeholder="Total Existing EMIs (₹)" required></div>
+                    <div class="col-md-2"><input type="number" id="camBounce" class="form-control" placeholder="Bouncing Count" value="0" required></div>
+                    <div class="col-md-2"><input type="number" id="camReqAmt" class="form-control" placeholder="Requested Loan Amount (₹)" required></div>
+                    <div class="col-md-2"><button type="submit" class="btn btn-primary w-100 fw-bold">Calculate CAM</button></div>
+                </form>
+                <div id="camResultBox" class="mt-3 d-none p-3 rounded"></div>
+            </div>
+
+            <!-- Step 2: Product & Location Login Filter -->
+            <div class="card card-custom p-4 mb-4">
+                <h5 class="fw-bold text-dark"><i class="bi bi-bank2"></i> Step 2: Product & Location Wise Bank Login / UTM Links</h5>
+                <div class="row g-2 my-2">
+                    <div class="col-md-4">
+                        <select id="filterProduct" class="form-select fw-bold text-primary" onchange="filterBanksByProduct()">
+                            <option value="">-- Choose Loan Product --</option>
+                            <option value="PL">Personal Loan (PL)</option>
+                            <option value="HL">Home Loan (HL)</option>
+                            <option value="LAP">Loan Against Property (LAP)</option>
+                            <option value="BL">Business Loan (BL)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="text" id="filterCity" class="form-control" placeholder="Type City for SM Auto-Match (e.g. Jaipur)" onkeyup="filterBanksByProduct()">
+                    </div>
+                </div>
+
+                <div id="bankCardsContainer" class="row g-3 mt-2">
+                    <div class="text-muted small">Please select a loan product above to fetch relevant Bank Logins, UTM links, and Location Sales Managers.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: SM DIRECTORY & BULK UPLOAD -->
+        <div class="tab-pane fade" id="tab-sm">
             <div class="card card-custom p-4 mb-4">
                 <h5 class="fw-bold text-dark"><i class="bi bi-file-earmark-excel-fill text-success"></i> Bulk Excel Upload All India SM List</h5>
                 <form id="bulkSmForm" class="row g-2 mt-2">
-                    <div class="col-md-8">
-                        <input type="file" id="smExcelFile" class="form-control" accept=".xlsx, .xls" required>
-                    </div>
-                    <div class="col-md-4">
-                        <button type="submit" class="btn btn-success w-100"><i class="bi bi-upload"></i> Import SM Excel</button>
-                    </div>
+                    <div class="col-md-8"><input type="file" id="smExcelFile" class="form-control" accept=".xlsx, .xls" required></div>
+                    <div class="col-md-4"><button type="submit" class="btn btn-success w-100"><i class="bi bi-upload"></i> Import Excel</button></div>
                 </form>
             </div>
 
@@ -75,30 +113,12 @@
                     <div class="col-md-1"><button type="submit" class="btn btn-primary w-100">Save</button></div>
                 </form>
             </div>
-
-            <button class="btn btn-outline-dark mb-3" onclick="toggleView('smTableWrapper', loadSMs)"><i class="bi bi-eye-fill"></i> Show / Hide Live SM Directory Data</button>
-
-            <div id="smTableWrapper" class="card card-custom p-3 d-none">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>SM Name</th>
-                                <th>State & City</th>
-                                <th>Mobile</th>
-                                <th>Product</th>
-                            </tr>
-                        </thead>
-                        <tbody id="smTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
         </div>
 
-        <!-- TAB 2: CALLING DATA & LEADS -->
+        <!-- TAB 3: CALLING DATA & LEADS -->
         <div class="tab-pane fade" id="tab-leads">
             <div class="card card-custom p-4 mb-4">
-                <h5 class="fw-bold text-dark"><i class="bi bi-telephone-plus-fill text-primary"></i> Add Calling Data / Single Lead</h5>
+                <h5 class="fw-bold text-dark"><i class="bi bi-telephone-plus-fill text-primary"></i> Add Calling Lead</h5>
                 <form id="addLeadForm" class="row g-2 mt-2">
                     <div class="col-md-4"><input type="text" id="leadName" class="form-control" placeholder="Full Name" required></div>
                     <div class="col-md-4"><input type="text" id="leadPhone" class="form-control" placeholder="Phone Number" required></div>
@@ -113,75 +133,18 @@
                     <div class="col-md-2"><button type="submit" class="btn btn-success w-100">Add Lead</button></div>
                 </form>
             </div>
-
-            <button class="btn btn-outline-primary mb-3" onclick="toggleView('leadTableWrapper', loadLeads)"><i class="bi bi-eye-fill"></i> Show / Hide Calling Leads Master List</button>
-
-            <div id="leadTableWrapper" class="card card-custom p-3 d-none">
-                <div class="table-responsive">
-                    <table class="table table-striped align-middle">
-                        <thead class="table-primary">
-                            <tr>
-                                <th>Applicant Name</th>
-                                <th>Phone Number</th>
-                                <th>Loan Type</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="leadTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
         </div>
 
-        <!-- TAB 3: BANK LINKS & CREDENTIALS -->
+        <!-- TAB 4: BANK LINKS & CREDENTIALS -->
         <div class="tab-pane fade" id="tab-banks">
             <div class="card card-custom p-4 mb-4">
                 <h5 class="fw-bold text-dark"><i class="bi bi-key-fill text-warning"></i> Add Bank ID/Password or UTM Link</h5>
                 <form id="addBankConfigForm" class="row g-2 mt-2">
-                    <div class="col-md-3"><input type="text" id="bankName" class="form-control" placeholder="Bank / NBFC Name" required></div>
+                    <div class="col-md-3"><input type="text" id="bankName" class="form-control" placeholder="Bank Name" required></div>
                     <div class="col-md-3"><input type="url" id="portalUrl" class="form-control" placeholder="Portal URL / UTM Link" required></div>
                     <div class="col-md-2"><input type="text" id="userId" class="form-control" placeholder="User ID / Code"></div>
-                    <div class="col-md-2"><input type="password" id="bankPassword" class="form-control" placeholder="Password"></div>
+                    <div class="col-md-2"><input type="text" id="bankPassword" class="form-control" placeholder="Password"></div>
                     <div class="col-md-2"><button type="submit" class="btn btn-dark w-100">Save Config</button></div>
-                </form>
-            </div>
-
-            <button class="btn btn-outline-dark mb-3" onclick="toggleView('bankTableWrapper', loadBankConfigs)"><i class="bi bi-eye-fill"></i> Show / Hide Active Bank Credentials & UTM Links</button>
-
-            <div id="bankTableWrapper" class="card card-custom p-3 d-none">
-                <div class="table-responsive">
-                    <table class="table table-bordered align-middle">
-                        <thead class="table-secondary">
-                            <tr>
-                                <th>Bank Name</th>
-                                <th>Portal / UTM Link</th>
-                                <th>User ID</th>
-                                <th>Password</th>
-                            </tr>
-                        </thead>
-                        <tbody id="bankTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 4: AGENT / MULTI-USER ID -->
-        <div class="tab-pane fade" id="tab-users">
-            <div class="card card-custom p-4">
-                <h5 class="fw-bold text-dark"><i class="bi bi-person-badge-fill text-info"></i> Create Multi-User / Agent ID</h5>
-                <form id="addUserForm" class="row g-2 mt-2">
-                    <div class="col-md-3"><input type="text" id="usrName" class="form-control" placeholder="Full Name" required></div>
-                    <div class="col-md-3"><input type="email" id="usrEmail" class="form-control" placeholder="Email ID" required></div>
-                    <div class="col-md-2"><input type="password" id="usrPass" class="form-control" placeholder="Password" required></div>
-                    <div class="col-md-2">
-                        <select id="usrRole" class="form-select">
-                            <option value="Calling Staff">Calling Staff</option>
-                            <option value="DSA">DSA Partner</option>
-                            <option value="Customer">Customer</option>
-                            <option value="Admin">Admin</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2"><button type="submit" class="btn btn-info text-white w-100">Create ID</button></div>
                 </form>
             </div>
         </div>
@@ -208,10 +171,8 @@
                     <div class="col-md-1"><button type="submit" class="btn btn-success w-100">Save</button></div>
                 </form>
             </div>
-
-            <button class="btn btn-outline-success mb-3" onclick="toggleView('payoutTableWrapper', loadPayouts)">
-                <i class="bi bi-eye-fill"></i> Show / Hide Master Payout Ledger
-            </button>
+            
+            <button class="btn btn-outline-success mb-3" onclick="toggleView('payoutTableWrapper', loadPayouts)"><i class="bi bi-eye-fill"></i> Show / Hide Payout Ledger</button>
 
             <div id="payoutTableWrapper" class="card card-custom p-3 d-none">
                 <div class="table-responsive">
@@ -234,10 +195,31 @@
             </div>
         </div>
 
+        <!-- TAB 6: AGENT / USERS -->
+        <div class="tab-pane fade" id="tab-users">
+            <div class="card card-custom p-4">
+                <h5 class="fw-bold text-dark"><i class="bi bi-person-badge-fill text-info"></i> Create Agent / User ID</h5>
+                <form id="addUserForm" class="row g-2 mt-2">
+                    <div class="col-md-3"><input type="text" id="usrName" class="form-control" placeholder="Full Name" required></div>
+                    <div class="col-md-3"><input type="email" id="usrEmail" class="form-control" placeholder="Email ID" required></div>
+                    <div class="col-md-2"><input type="password" id="usrPass" class="form-control" placeholder="Password" required></div>
+                    <div class="col-md-2">
+                        <select id="usrRole" class="form-select">
+                            <option value="Calling Staff">Calling Staff</option>
+                            <option value="DSA">DSA Partner</option>
+                            <option value="Customer">Customer</option>
+                            <option value="Admin">Admin</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2"><button type="submit" class="btn btn-info text-white w-100">Create ID</button></div>
+                </form>
+            </div>
+        </div>
+
     </div>
 </div>
 
-<!-- INVOICE MODAL POPUP -->
+<!-- INVOICE MODAL -->
 <div class="modal fade" id="invoiceModal" tabindex="-1">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
@@ -245,9 +227,7 @@
         <h5 class="modal-title"><i class="bi bi-file-earmark-pdf"></i> Commission Payout Invoice</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body p-4" id="printableInvoice">
-        <!-- Dynamic Invoice -->
-      </div>
+      <div class="modal-body p-4" id="printableInvoice"></div>
       <div class="modal-footer">
         <button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> Print / Save PDF</button>
       </div>

@@ -1,105 +1,76 @@
 const express = require('express');
 const router = express.Router();
+const BankConfig = require('../models/BankConfig');
 
-// Safe Model Imports (Puraane + Naye)
-let BankConfig, SalesManager;
-try {
-    BankConfig = require('../models/BankConfig');
-} catch (e) {
-    console.log('BankConfig model loading in safe mode');
-}
-
-try {
-    SalesManager = require('../models/SalesManager');
-} catch (e) {
-    console.log('SalesManager model loading in safe mode');
-}
-
-/* =========================================================
-   1. PURAANE FEATURES (SEARCH & ELIGIBILITY RULES)
-   ========================================================= */
-
-// Live Auto-Lookup: Find Bank SM & Eligibility Rules
-router.get('/search', async (req, res) => {
+// Add or Update Bank / UTM Config
+router.post('/add', async (req, res) => {
     try {
-        const { bank, state, district } = req.query;
-        let query = {};
-
-        if (bank) query.bankName = new RegExp(bank, 'i');
-        if (state) query.state = new RegExp(state, 'i');
-        if (district) query.city = new RegExp(district, 'i');
-
-        if (SalesManager) {
-            const results = await SalesManager.find(query);
-            return res.status(200).json({ status: 'success', data: results });
-        }
-
-        return res.status(200).json({ 
-            status: 'success', 
-            data: [], 
-            message: 'Search query processed successfully' 
+        const { bankName, portalType, portalUrl, userId, password, payoutPercentage, productsSupported, adminOtpPhone } = req.body;
+        
+        const newConfig = new BankConfig({
+            bankName,
+            portalType: portalType || 'UTM Link',
+            portalUrl,
+            userId,
+            password,
+            payoutPercentage: payoutPercentage || 0,
+            productsSupported: productsSupported || ['PL', 'HL', 'LAP', 'BL'],
+            adminOtpPhone: adminOtpPhone || '+91-9876543210'
         });
-    } catch (error) {
-        return res.status(500).json({ status: 'error', message: 'Search Error: ' + error.message });
-    }
-});
 
-
-/* =========================================================
-   2. NAYE FEATURES (BANK LOGINS, UTM LINKS & CREDENTIALS)
-   ========================================================= */
-
-// Fetch All Bank Credentials, UTM Links & Portals
-router.get('/all-configs', async (req, res) => {
-    try {
-        if (BankConfig) {
-            const configs = await BankConfig.find().sort({ createdAt: -1 });
-            return res.status(200).json({ status: 'success', data: configs });
-        }
-        return res.status(200).json({ status: 'success', data: [] });
+        await newConfig.save();
+        return res.status(200).json({ status: 'success', message: 'Bank Config saved successfully!', data: newConfig });
     } catch (error) {
         return res.status(500).json({ status: 'error', message: error.message });
     }
 });
 
-// Add New Bank Name, ID Pass, UTM Link & Payout Rate
-router.post('/add-config', async (req, res) => {
+// Get All Bank Configs
+router.get('/all-configs', async (req, res) => {
     try {
-        const { bankName, portalType, portalUrl, userId, password, payoutPercentage, productsSupported } = req.body;
-        
-        if (BankConfig) {
-            const newConfig = new BankConfig({
-                bankName,
-                portalType: portalType || 'UTM Link',
-                portalUrl,
-                userId: userId || '',
-                password: password || '',
-                payoutPercentage: payoutPercentage || 0,
-                productsSupported: Array.isArray(productsSupported) ? productsSupported : [productsSupported || 'PL']
-            });
-
-            await newConfig.save();
-            return res.status(200).json({ 
-                status: 'success', 
-                message: 'Bank Portal / Credentials / UTM Link added successfully!', 
-                data: newConfig 
-            });
-        }
-
-        return res.status(200).json({ status: 'success', message: 'Bank Config saved (Safe mode)' });
+        const configs = await BankConfig.find({ isActive: true }).sort({ createdAt: -1 });
+        return res.status(200).json({ status: 'success', data: configs });
     } catch (error) {
-        return res.status(500).json({ status: 'error', message: 'Failed to add bank config: ' + error.message });
+        return res.status(500).json({ status: 'error', message: error.message });
     }
 });
 
-// Update Existing Bank ID/Pass or UTM Link
-router.put('/update-config/:id', async (req, res) => {
+// Auto-Eligibility & Statement CAM Analysis Engine
+router.post('/analyze-eligibility', async (req, res) => {
     try {
-        if (BankConfig) {
-            const updatedConfig = await BankConfig.findByIdAndUpdate(req.params.id, req.body, { new: true });
-            return res.status(200).json({ status: 'success', message: 'Portal credentials updated!', data: updatedConfig });
+        const { monthlySalary, existingEmi, bouncedCheques, requestedLoan } = req.body;
+        
+        const netIncome = Number(monthlySalary) || 25000;
+        const totalEmi = Number(existingEmi) || 0;
+        const bouncing = Number(bouncedCheques) || 0;
+        
+        const foir = 0.50; // 50% FOIR Limit
+        const maxAllowedEmi = (netIncome * foir) - totalEmi;
+        
+        let status = 'Eligible';
+        let rejectReason = '';
+        
+        if (bouncing > 2) {
+            status = 'Rejected';
+            rejectReason = 'High Bank Bouncing (>2 instances detected)';
+        } else if (maxAllowedEmi <= 0) {
+            status = 'Rejected';
+            rejectReason = 'FOIR Exceeded / High Existing Loan EMI Obligations';
         }
-        return res.status(200).json({ status: 'success', message: 'Config updated' });
+
+        const calculatedLoanLimit = Math.max(0, maxAllowedEmi * 48); // 4 Years Tenure
+
+        return res.status(200).json({
+            status: 'success',
+            data: {
+                status,
+                rejectReason,
+                abb: netIncome * 0.40, // Estimated Average Bank Balance
+                bouncingCount: bouncing,
+                maxAllowedEmi: maxAllowedEmi > 0 ? maxAllowedEmi : 0,
+                approvedLoanAmount: Math.min(calculatedLoanLimit, Number(requestedLoan) || 500000)
+            }
+        });
     } catch (error) {
         return res.status(500).json({ status: 'error', message: error.message });
     }
