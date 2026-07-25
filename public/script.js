@@ -121,3 +121,114 @@ async function loadBankConfigs() {
         });
     }
 }
+// Add Payout Submit Event
+document.getElementById('addPayoutForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const payload = {
+        agentName: document.getElementById('payAgentName').value,
+        agentEmail: document.getElementById('payAgentEmail').value,
+        applicantName: document.getElementById('payApplicant').value,
+        bankName: document.getElementById('payBank').value,
+        productType: document.getElementById('payProduct').value,
+        loanAmount: document.getElementById('payAmount').value,
+        payoutPercentage: document.getElementById('payRate').value
+    };
+
+    const res = await fetch('/api/payouts/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    alert(data.message || 'Payout Saved!');
+    document.getElementById('addPayoutForm').reset();
+    if (typeof loadPayouts === 'function') loadPayouts();
+});
+
+// Load Payout Ledger & Invoices
+async function loadPayouts() {
+    const res = await fetch('/api/payouts/all');
+    const data = await res.json();
+    const tbody = document.getElementById('payoutTableBody');
+    tbody.innerHTML = '';
+    if (data.data) {
+        data.data.forEach(item => {
+            tbody.innerHTML += `<tr>
+                <td><code>${item.invoiceNumber}</code></td>
+                <td><strong>${item.agentName}</strong><br><small class="text-muted">${item.agentEmail}</small></td>
+                <td>${item.applicantName} <br><span class="badge bg-secondary">${item.bankName}</span></td>
+                <td><span class="badge bg-info text-dark">${item.productType}</span></td>
+                <td>₹${Number(item.loanAmount).toLocaleString()}</td>
+                <td>${item.payoutPercentage}%</td>
+                <td class="text-success fw-bold">₹${Number(item.payoutAmount).toLocaleString()}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick='viewInvoice(${JSON.stringify(item)})'>
+                        <i class="bi bi-receipt"></i> Invoice
+                    </button>
+                </td>
+            </tr>`;
+        });
+    }
+}
+
+// Generate & View Invoice Popup
+function viewInvoice(data) {
+    const container = document.getElementById('printableInvoice');
+    container.innerHTML = `
+        <div class="border p-4 rounded bg-white">
+            <div class="d-flex justify-content-between border-bottom pb-3">
+                <div>
+                    <h4 class="fw-bold text-primary mb-0">DSA SaaS Engine</h4>
+                    <small class="text-muted">Commission & Disbursed Payout Statement</small>
+                </div>
+                <div class="text-end">
+                    <h6 class="fw-bold mb-0">${data.invoiceNumber}</h6>
+                    <small>Date: ${new Date(data.createdAt).toLocaleDateString()}</small>
+                </div>
+            </div>
+
+            <div class="row my-3">
+                <div class="col-6">
+                    <p class="mb-1"><strong>Agent / DSA Details:</strong></p>
+                    <h6>${data.agentName}</h6>
+                    <p class="text-muted mb-0">${data.agentEmail}</p>
+                </div>
+                <div class="col-6 text-end">
+                    <p class="mb-1"><strong>Status:</strong></p>
+                    <span class="badge bg-success">${data.status}</span>
+                </div>
+            </div>
+
+            <table class="table table-bordered my-3">
+                <thead class="table-light">
+                    <tr>
+                        <th>Customer</th>
+                        <th>Bank</th>
+                        <th>Product</th>
+                        <th>Disbursed Amount</th>
+                        <th>Payout Rate</th>
+                        <th>Payout Earned</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>${data.applicantName}</td>
+                        <td>${data.bankName}</td>
+                        <td>${data.productType}</td>
+                        <td>₹${Number(data.loanAmount).toLocaleString()}</td>
+                        <td>${data.payoutPercentage}%</td>
+                        <td class="fw-bold text-success">₹${Number(data.payoutAmount).toLocaleString()}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="d-flex justify-content-between align-middle pt-3 border-top">
+                <span class="fw-bold fs-5">Total Commission Payable:</span>
+                <span class="fw-bold fs-4 text-success">₹${Number(data.payoutAmount).toLocaleString()}</span>
+            </div>
+        </div>
+    `;
+    const invoiceModal = new bootstrap.Modal(document.getElementById('invoiceModal'));
+    invoiceModal.show();
+}

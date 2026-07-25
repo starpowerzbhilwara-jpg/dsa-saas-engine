@@ -2,60 +2,58 @@ const express = require('express');
 const router = express.Router();
 const Payout = require('../models/Payout');
 
-// 1. Create or Update DSA Payout Sheet
-router.post('/update-sheet', async (req, res) => {
-  try {
-    const { dsaId, month, totalDisbursedAmount, commissionRate, paidAmount, payoutStatus, remarks } = req.body;
+// Helper to generate Invoice Number (e.g. INV-2026-1001)
+const generateInvoiceNo = () => 'INV-' + Date.now().toString().slice(-6);
 
-    const disbAmount = Number(totalDisbursedAmount) || 0;
-    const commRate = Number(commissionRate) || 1.5;
-    const paid = Number(paidAmount) || 0;
+// 1. Add / Record New Disbursed Payout (Admin Entry)
+router.post('/add', async (req, res) => {
+    try {
+        const { agentName, agentEmail, applicantName, bankName, productType, loanAmount, payoutPercentage, status } = req.body;
+        
+        const calculatedPayout = (Number(loanAmount) * Number(payoutPercentage)) / 100;
 
-    const totalEarning = (disbAmount * commRate) / 100;
-    const pendingAmount = totalEarning - paid;
+        const newPayout = new Payout({
+            invoiceNumber: generateInvoiceNo(),
+            agentName,
+            agentEmail,
+            applicantName,
+            bankName,
+            productType,
+            loanAmount: Number(loanAmount),
+            payoutPercentage: Number(payoutPercentage),
+            payoutAmount: calculatedPayout,
+            status: status || 'Paid'
+        });
 
-    let payout = await Payout.findOne({ dsaId, month });
-
-    if (payout) {
-      payout.totalDisbursedAmount = disbAmount;
-      payout.commissionRate = commRate;
-      payout.totalEarning = totalEarning;
-      payout.paidAmount = paid;
-      payout.pendingAmount = pendingAmount;
-      payout.payoutStatus = payoutStatus || 'Pending';
-      payout.remarks = remarks || '';
-      await payout.save();
-    } else {
-      payout = new Payout({
-        dsaId, month, totalDisbursedAmount: disbAmount, commissionRate: commRate, totalEarning, paidAmount: paid, pendingAmount, payoutStatus, remarks
-      });
-      await payout.save();
+        await newPayout.save();
+        return res.status(200).json({ status: 'success', message: 'Payout & Disbursed Case recorded successfully!', data: newPayout });
+    } catch (error) {
+        return res.status(500).json({ status: 'error', message: 'Payout Addition Error: ' + error.message });
     }
-
-    res.status(200).json({ success: true, message: 'Payout Sheet Updated Successfully!', payout });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
 });
 
-// 2. Fetch All DSA Payouts List
+// 2. Fetch All Payouts (Master Ledger for Admin)
 router.get('/all', async (req, res) => {
-  try {
-    const payouts = await Payout.find().populate('dsaId', 'name agentCode email').sort({ createdAt: -1 });
-    res.status(200).json({ success: true, payouts });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
+    try {
+        const payouts = await Payout.find().sort({ createdAt: -1 });
+        return res.status(200).json({ status: 'success', data: payouts });
+    } catch (error) {
+        return res.status(500).json({ status: 'error', message: error.message });
+    }
 });
 
-// 3. Fetch Single DSA Payout by ID
-router.get('/dsa/:dsaId', async (req, res) => {
-  try {
-    const payouts = await Payout.find({ dsaId: req.params.dsaId }).populate('dsaId', 'name agentCode email').sort({ createdAt: -1 });
-    res.status(200).json({ success: true, payouts });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
+// 3. Fetch Agent Specific Payout Ledger (Filter by Agent Email or Name)
+router.get('/agent-ledger', async (req, res) => {
+    try {
+        const { email } = req.query;
+        if (!email) {
+            return res.status(400).json({ status: 'error', message: 'Agent Email required' });
+        }
+        const agentPayouts = await Payout.find({ agentEmail: email }).sort({ createdAt: -1 });
+        return res.status(200).json({ status: 'success', data: agentPayouts });
+    } catch (error) {
+        return res.status(500).json({ status: 'error', message: error.message });
+    }
 });
 
 module.exports = router;

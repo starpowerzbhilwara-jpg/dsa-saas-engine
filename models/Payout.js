@@ -1,19 +1,21 @@
 const mongoose = require('mongoose');
 
 const payoutSchema = new mongoose.Schema({
-  dsaId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  month: { type: String, required: true }, // e.g., "July 2026"
-  totalDisbursedAmount: { type: Number, default: 0 },
-  commissionRate: { type: Number, default: 1.5 }, // % commission rate
-  totalEarning: { type: Number, default: 0 }, // Calculated Amount
-  paidAmount: { type: Number, default: 0 },
-  pendingAmount: { type: Number, default: 0 },
-  payoutStatus: { 
-    type: String, 
-    enum: ['Pending', 'Processing', 'Paid', 'Hold'], 
-    default: 'Pending' 
-  },
-  remarks: { type: String }
+    invoiceNumber: { type: String, unique: true },
+    agentName: { type: String, required: true }, // Agent / Calling Staff / DSA
+    agentEmail: { type: String, required: true },
+    applicantName: { type: String, required: true },
+    bankName: { type: String, required: true },
+    productType: { type: String, required: true }, // HL, LAP, PL, BL, etc.
+    loanAmount: { type: Number, required: true }, // Disbursed Amount
+    payoutPercentage: { type: Number, required: true }, // Commission %
+    payoutAmount: { type: Number, required: true }, // Net Commission Paid
+    disbursedDate: { type: Date, default: Date.now },
+    status: { 
+        type: String, 
+        enum: ['Pending', 'Approved', 'Paid'], 
+        default: 'Paid' 
+    }
 }, { timestamps: true });
 
-module.exports = mongoose.models.Payout || mongoose.model('Payout', payoutSchema);
+module.exports = mongoose.model('Payout', payoutSchema);
