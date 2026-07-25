@@ -1,32 +1,43 @@
 const express = require('express');
 const router = express.Router();
+const User = require('../models/User');
 
-let Application;
-try {
-    Application = require('../models/Application');
-} catch (e) {
-    console.log('Application model missing, running in safe mode.');
-}
-
-// Single Lead Add Route
-router.post('/add', async (req, res) => {
+// Register DSA / User with Auto Unique Code
+router.post('/register', async (req, res) => {
     try {
-        if (Application) {
-            const newLead = new Application(req.body);
-            await newLead.save();
+        const { name, email, password, role } = req.body;
+
+        const existing = await User.findOne({ email });
+        if (existing) {
+            return res.status(400).json({ status: 'error', message: 'Email already registered.' });
         }
-        return res.status(200).json({ status: 'success', message: 'Lead added successfully!' });
-    } catch (error) {
-        return res.status(500).json({ status: 'error', message: 'Error adding lead: ' + error.message });
+
+        // Auto Generate Unique DSA Code (e.g. DSA101, DSA102)
+        const count = await User.countDocuments();
+        const dsaCode = `DSA${101 + count}`;
+
+        const newUser = new User({
+            name,
+            email,
+            password,
+            role: role || 'DSA',
+            dsaCode
+        });
+
+        await newUser.save();
+        res.json({ status: 'success', data: newUser });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message });
     }
 });
 
-// Bulk Excel Upload Route
-router.post('/upload-excel', async (req, res) => {
+// Get All Users / DSAs List
+router.get('/all', async (req, res) => {
     try {
-        return res.status(200).json({ status: 'success', message: 'Bulk Excel leads uploaded successfully!' });
-    } catch (error) {
-        return res.status(500).json({ status: 'error', message: 'Error uploading excel: ' + error.message });
+        const users = await User.find().sort({ createdAt: -1 });
+        res.json({ status: 'success', data: users });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message });
     }
 });
 
