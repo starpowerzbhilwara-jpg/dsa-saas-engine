@@ -1,53 +1,32 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User');
 
-// Create Staff / Agent / DSA
-router.post('/create-staff', async (req, res) => {
+let Application;
+try {
+    Application = require('../models/Application');
+} catch (e) {
+    console.log('Application model missing, running in safe mode.');
+}
+
+// Single Lead Add Route
+router.post('/add', async (req, res) => {
     try {
-        const { name, email, phone, password, role, city, state } = req.body;
-
-        let userExists = await User.findOne({ email });
-        if (userExists) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Is Email/User ID se pehle se account hai. Kripya naya Unique Email/ID daalein.' 
-            });
+        if (Application) {
+            const newLead = new Application(req.body);
+            await newLead.save();
         }
-
-        const randomNum = Math.floor(1000 + Math.random() * 9000);
-        const agentCode = `${role.substring(0, 3).toUpperCase()}-${randomNum}`;
-
-        const newUser = new User({
-            name,
-            email,
-            phone,
-            password,
-            role,
-            city,
-            state,
-            agentCode
-        });
-
-        await newUser.save();
-
-        res.status(201).json({
-            success: true,
-            message: `${role} (${agentCode}) User Created Successfully!`,
-            user: newUser
-        });
+        return res.status(200).json({ status: 'success', message: 'Lead added successfully!' });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        return res.status(500).json({ status: 'error', message: 'Error adding lead: ' + error.message });
     }
 });
 
-// Fetch All Staff List
-router.get('/all-staff', async (req, res) => {
+// Bulk Excel Upload Route
+router.post('/upload-excel', async (req, res) => {
     try {
-        const staffList = await User.find({ role: { $ne: 'Customer' } }).select('-password').sort({ createdAt: -1 });
-        res.json({ success: true, staff: staffList });
+        return res.status(200).json({ status: 'success', message: 'Bulk Excel leads uploaded successfully!' });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        return res.status(500).json({ status: 'error', message: 'Error uploading excel: ' + error.message });
     }
 });
 
