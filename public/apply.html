@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apply Online for Instant Loan Approval</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body { background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); min-height: 100vh; padding: 30px 10px; }
+        .apply-card { max-width: 650px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+
+<div class="apply-card">
+    <div class="text-center mb-4">
+        <h2 class="fw-bold text-primary"><i class="bi bi-rocket-takeoff-fill"></i> Instant Loan Portal</h2>
+        <p class="text-muted">Fill out your details to check eligible banks & apply online within minutes.</p>
+    </div>
+
+    <form id="customerApplyForm">
+        <!-- Optional DSA Referral Code Field -->
+        <div class="mb-3 bg-light p-3 rounded border">
+            <label class="form-label fw-bold text-secondary mb-1"><i class="bi bi-person-badge"></i> DSA Partner Code (Optional)</label>
+            <input type="text" id="custDsaCode" class="form-control" placeholder="If referred by a DSA, enter code (e.g. DSA101)">
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Full Name</label>
+                <input type="text" id="custName" class="form-control" required placeholder="e.g. Rahul Sharma">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Mobile Number</label>
+                <input type="text" id="custPhone" class="form-control" required placeholder="10 Digit Mobile">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">City / Location</label>
+                <input type="text" id="custCity" class="form-control" required placeholder="e.g. Bhilwara">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Loan Product</label>
+                <select id="custProduct" class="form-select">
+                    <option value="PL">Personal Loan (PL)</option>
+                    <option value="HL">Home Loan (HL)</option>
+                    <option value="LAP">Loan Against Property (LAP)</option>
+                    <option value="BL">Business Loan (BL)</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Monthly Salary / Income (₹)</label>
+                <input type="number" id="custIncome" class="form-control" required placeholder="e.g. 45000">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Current Monthly EMIs (₹)</label>
+                <input type="number" id="custEmi" class="form-control" value="0" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Requested Loan Amount (₹)</label>
+                <input type="number" id="custReqAmt" class="form-control" required placeholder="e.g. 500000">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Cheque Bouncing in 6 months?</label>
+                <input type="number" id="custBounce" class="form-control" value="0" required placeholder="0 if clean">
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 py-3 mt-4 fw-bold fs-5" id="submitBtn">
+            <i class="bi bi-shield-check"></i> Submit & Check Eligible Banks
+        </button>
+    </form>
+
+    <!-- SUCCESS UNLOCKED BANKS RESULTS -->
+    <div id="customerResultSection" class="mt-4 d-none">
+        <div id="camBanner"></div>
+        <h5 class="fw-bold text-dark mt-3 mb-2"><i class="bi bi-building-check"></i> Matching Bank Offers</h5>
+        <div id="customerBanksList" class="row g-3"></div>
+    </div>
+</div>
+
+<script>
+// Auto-fill DSA Code if passed in URL parameter (e.g. apply.html?ref=DSA101)
+window.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const refCode = urlParams.get('ref');
+    if (refCode) {
+        document.getElementById('custDsaCode').value = refCode;
+    }
+});
+
+document.getElementById('customerApplyForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.innerHTML = 'Processing Loan Eligibility...';
+
+    const formData = new FormData();
+    formData.append('dsaCode', document.getElementById('custDsaCode').value || 'DIRECT');
+    formData.append('applicantName', document.getElementById('custName').value);
+    formData.append('phone', document.getElementById('custPhone').value);
+    formData.append('city', document.getElementById('custCity').value);
+    formData.append('loanProduct', document.getElementById('custProduct').value);
+    formData.append('monthlyIncome', document.getElementById('custIncome').value);
+    formData.append('existingEmi', document.getElementById('custEmi').value);
+    formData.append('bouncingCount', document.getElementById('custBounce').value);
+    formData.append('requestedAmount', document.getElementById('custReqAmt').value);
+
+    try {
+        const res = await fetch('/api/leads/file-login', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await res.json();
+        if (result.status === 'success') {
+            renderResults(result.data);
+        } else {
+            alert('Error: ' + result.message);
+        }
+    } catch (err) {
+        alert('Server connection error. Please try again.');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-shield-check"></i> Submit & Check Eligible Banks';
+    }
+});
+
+async function renderResults(leadData) {
+    const section = document.getElementById('customerResultSection');
+    const camBox = document.getElementById('camBanner');
+    const bankList = document.getElementById('customerBanksList');
+
+    section.classList.remove('d-none');
+    const cam = leadData.camCalculated || {};
+
+    if (cam.status === 'Eligible') {
+        camBox.className = "alert alert-success border-success p-3 rounded shadow-sm";
+        camBox.innerHTML = `
+            <h5 class="fw-bold mb-1"><i class="bi bi-check-circle-fill"></i> Loan Pre-Approved!</h5>
+            <div>Approved Max Eligibility: <strong>₹${(cam.approvedAmount || 0).toLocaleString()}</strong></div>
+        `;
+    } else {
+        camBox.className = "alert alert-danger border-danger p-3 rounded shadow-sm";
+        camBox.innerHTML = `
+            <h5 class="fw-bold mb-1"><i class="bi bi-x-circle-fill"></i> Application Status</h5>
+            <div>${cam.rejectionReason || 'Does not match standard criteria.'}</div>
+        `;
+    }
+
+    bankList.innerHTML = '';
+    if (!leadData.eligibleBankIds || leadData.eligibleBankIds.length === 0) {
+        bankList.innerHTML = `<div class="col-12 alert alert-warning">Our executive will call you shortly with customized bank offers.</div>`;
+        return;
+    }
+
+    leadData.eligibleBankIds.forEach(bank => {
+        bankList.innerHTML += `
+            <div class="col-12">
+                <div class="card p-3 border-success shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold text-success mb-0">${bank.bankName}</h5>
+                        <a href="${bank.portalUrl}" target="_blank" class="btn btn-sm btn-success fw-bold">Proceed Online</a>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+}
+</script>
+
+</body>
+</html>
