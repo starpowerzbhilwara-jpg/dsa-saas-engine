@@ -1,127 +1,144 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // 1. Add Single Lead
-    document.getElementById('addLeadForm')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const payload = {
-            fullName: document.getElementById('leadName').value,
-            phone: document.getElementById('leadPhone').value,
-            loanType: document.getElementById('leadType').value
-        };
-        const res = await fetch('/api/applications/add', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        alert(data.message || 'Lead Saved!');
-        document.getElementById('addLeadForm').reset();
-    });
+// Global Helper Functions
+function toggleView(elementId, callback) {
+    const el = document.getElementById(elementId);
+    if (el) {
+        el.classList.toggle('d-none');
+        if (!el.classList.contains('d-none') && typeof callback === 'function') {
+            callback();
+        }
+    }
+}
 
-    // 2. Add SM Entry
-    document.getElementById('addSmForm')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const payload = {
-            state: document.getElementById('smState').value,
-            city: document.getElementById('smCity').value,
-            smName: document.getElementById('smName').value,
-            mobile: document.getElementById('smMobile').value,
-            product: document.getElementById('smProduct').value
-        };
-        const res = await fetch('/api/sm/add', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        alert(data.message || 'SM Saved!');
-        document.getElementById('addSmForm').reset();
-    });
+// ----------------------------------------------------
+// 1. FILE LOGIN WITH DOCUMENTS & UNLOCKED BANKS ENGINE
+// ----------------------------------------------------
+document.getElementById('fileLoginForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-    // 3. Add Bank Config / UTM Link
-    document.getElementById('addBankConfigForm')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const payload = {
-            bankName: document.getElementById('bankName').value,
-            portalUrl: document.getElementById('portalUrl').value,
-            userId: document.getElementById('userId').value,
-            password: document.getElementById('bankPassword').value
-        };
-        const res = await fetch('/api/banks/add-config', {
+    const formData = new FormData();
+    formData.append('applicantName', document.getElementById('flName').value);
+    formData.append('phone', document.getElementById('flPhone').value);
+    formData.append('city', document.getElementById('flCity').value);
+    formData.append('loanProduct', document.getElementById('flProduct').value);
+    formData.append('monthlyIncome', document.getElementById('flIncome').value);
+    formData.append('existingEmi', document.getElementById('flEmi').value);
+    formData.append('bouncingCount', document.getElementById('flBounce').value);
+    formData.append('requestedAmount', document.getElementById('flReqAmt').value);
+
+    // Append Files
+    const pan = document.getElementById('panCardFile').files[0];
+    const aadhaar = document.getElementById('aadhaarCardFile').files[0];
+    const stmt = document.getElementById('bankStatementFile').files[0];
+    const slip = document.getElementById('salarySlipFile').files[0];
+
+    if (pan) formData.append('panCard', pan);
+    if (aadhaar) formData.append('aadhaarCard', aadhaar);
+    if (stmt) formData.append('bankStatement', stmt);
+    if (slip) formData.append('salarySlip', slip);
+
+    try {
+        const res = await fetch('/api/leads/file-login', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: formData
         });
-        const data = await res.json();
-        alert(data.message || 'Bank Link Saved!');
-        document.getElementById('addBankConfigForm').reset();
-    });
+
+        const result = await res.json();
+        if (result.status === 'success') {
+            renderCAMAndUnlockedBanks(result.data);
+        } else {
+            alert('File Upload Failed: ' + result.message);
+        }
+    } catch (err) {
+        console.error(err);
+        alert('Server Error during file login upload.');
+    }
 });
 
-// Toggle Show/Hide Functionality
-function toggleView(elementId, fetchFunction) {
-    const el = document.getElementById(elementId);
-    if (el.classList.contains('d-none')) {
-        el.classList.remove('d-none');
-        if (fetchFunction) fetchFunction();
+async function renderCAMAndUnlockedBanks(leadData) {
+    const section = document.getElementById('loggedFileDetails');
+    const camBox = document.getElementById('camSummaryBanner');
+    const bankList = document.getElementById('eligibleBanksList');
+
+    section.classList.remove('d-none');
+    
+    const cam = leadData.camCalculated || {};
+
+    if (cam.status === 'Eligible') {
+        camBox.className = "alert alert-success border-success p-3 rounded shadow-sm";
+        camBox.innerHTML = `
+            <h5 class="fw-bold mb-1"><i class="bi bi-check-circle-fill"></i> File Approved by Auto-CAM Engine!</h5>
+            <div><strong>Applicant:</strong> ${leadData.applicantName} | <strong>City:</strong> ${leadData.city} | <strong>Product:</strong> ${leadData.loanProduct}</div>
+            <div class="fs-6 mt-1"><strong>Approved Loan Eligibility:</strong> ₹${(cam.approvedAmount || 0).toLocaleString()} | <strong>Max Allowed EMI:</strong> ₹${(cam.maxEmiAllowed || 0).toLocaleString()}</div>
+        `;
     } else {
-        el.classList.add('d-none');
+        camBox.className = "alert alert-danger border-danger p-3 rounded shadow-sm";
+        camBox.innerHTML = `
+            <h5 class="fw-bold mb-1"><i class="bi bi-x-circle-fill"></i> File Rejected by Auto-Engine</h5>
+            <div><strong>Reason:</strong> ${cam.rejectionReason || 'Criteria Not Met'}</div>
+        `;
     }
+
+    // Display Unlocked Banks
+    bankList.innerHTML = '';
+    
+    // Fetch Location SM Data for Matching City
+    let smData = { data: [] };
+    try {
+        const smRes = await fetch('/api/sm/all');
+        smData = await smRes.json();
+    } catch (e) { console.log(e); }
+
+    if (!leadData.eligibleBankIds || leadData.eligibleBankIds.length === 0) {
+        bankList.innerHTML = `<div class="col-12 alert alert-warning">No bank logins unlocked for this criteria or product.</div>`;
+        return;
+    }
+
+    leadData.eligibleBankIds.forEach(bank => {
+        // Location Match SM
+        const smMatch = (smData.data || []).find(sm => 
+            sm.city.toLowerCase().includes((leadData.city || '').toLowerCase())
+        );
+
+        bankList.innerHTML += `
+            <div class="col-md-6">
+                <div class="card p-3 border-success shadow-sm h-100">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold text-success mb-0"><i class="bi bi-shield-check"></i> ${bank.bankName}</h5>
+                        <span class="badge bg-success">UNLOCKED</span>
+                    </div>
+                    <hr class="my-2">
+                    <div class="small mb-2">
+                        <div><strong>Portal / UTM Type:</strong> ${bank.portalType || 'UTM Link'}</div>
+                        ${bank.userId ? `<div><strong>User ID:</strong> <code>${bank.userId}</code></div>` : ''}
+                        ${bank.password ? `<div><strong>Password:</strong> <code>${bank.password}</code></div>` : ''}
+                    </div>
+                    
+                    <div class="alert alert-info p-2 mb-2 small fw-bold">
+                        📲 Need Login OTP? Contact Admin: ${bank.adminOtpPhone || '+91-9876543210'}
+                    </div>
+
+                    <div class="p-2 bg-light rounded border mb-3">
+                        <small class="fw-bold text-secondary">Mapped Location Sales Manager (${leadData.city}):</small>
+                        ${smMatch ? `
+                            <div class="text-dark fw-bold">${smMatch.smName} (${smMatch.mobile})</div>
+                            <small class="text-muted">${smMatch.city}, ${smMatch.state}</small>
+                        ` : `
+                            <div class="text-danger small">No SM mapped for ${leadData.city}.</div>
+                        `}
+                    </div>
+
+                    <a href="${bank.portalUrl}" target="_blank" class="btn btn-success fw-bold w-100">
+                        Launch ${bank.bankName} Portal / UTM
+                    </a>
+                </div>
+            </div>
+        `;
+    });
 }
 
-// Load SMs Table
-async function loadSMs() {
-    const res = await fetch('/api/sm/all');
-    const data = await res.json();
-    const tbody = document.getElementById('smTableBody');
-    tbody.innerHTML = '';
-    if (data.data) {
-        data.data.forEach(item => {
-            tbody.innerHTML += `<tr>
-                <td class="fw-bold">${item.smName || 'N/A'}</td>
-                <td>${item.state || ''}, ${item.city || ''}</td>
-                <td>${item.mobile || ''}</td>
-                <td><span class="badge bg-secondary">${item.product || 'All'}</span></td>
-            </tr>`;
-        });
-    }
-}
-
-// Load Leads Table
-async function loadLeads() {
-    const res = await fetch('/api/applications/all');
-    const data = await res.json();
-    const tbody = document.getElementById('leadTableBody');
-    tbody.innerHTML = '';
-    if (data.data) {
-        data.data.forEach(item => {
-            tbody.innerHTML += `<tr>
-                <td class="fw-bold">${item.fullName}</td>
-                <td>${item.phone}</td>
-                <td>${item.loanType}</td>
-                <td><span class="badge bg-warning text-dark">${item.status || 'Pending'}</span></td>
-            </tr>`;
-        });
-    }
-}
-
-// Load Bank Configs
-async function loadBankConfigs() {
-    const res = await fetch('/api/banks/all-configs');
-    const data = await res.json();
-    const tbody = document.getElementById('bankTableBody');
-    tbody.innerHTML = '';
-    if (data.data) {
-        data.data.forEach(item => {
-            tbody.innerHTML += `<tr>
-                <td class="fw-bold">${item.bankName}</td>
-                <td><a href="${item.portalUrl}" target="_blank" class="btn btn-sm btn-link">${item.portalUrl}</a></td>
-                <td><code>${item.userId || 'N/A'}</code></td>
-                <td><code>${item.password || 'N/A'}</code></td>
-            </tr>`;
-        });
-    }
-}
-// Add Payout Submit Event
+// ----------------------------------------------------
+// 2. BANK PAYOUTS & INVOICE GENERATOR SYSTEM
+// ----------------------------------------------------
 document.getElementById('addPayoutForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const payload = {
@@ -129,9 +146,9 @@ document.getElementById('addPayoutForm')?.addEventListener('submit', async (e) =
         agentEmail: document.getElementById('payAgentEmail').value,
         applicantName: document.getElementById('payApplicant').value,
         bankName: document.getElementById('payBank').value,
-        productType: document.getElementById('payProduct').value,
-        loanAmount: document.getElementById('payAmount').value,
-        payoutPercentage: document.getElementById('payRate').value
+        loanProduct: document.getElementById('payProduct').value,
+        disbursedAmount: Number(document.getElementById('payAmount').value),
+        payoutRate: Number(document.getElementById('payRate').value)
     };
 
     const res = await fetch('/api/payouts/add', {
@@ -140,95 +157,105 @@ document.getElementById('addPayoutForm')?.addEventListener('submit', async (e) =
         body: JSON.stringify(payload)
     });
 
-    const data = await res.json();
-    alert(data.message || 'Payout Saved!');
-    document.getElementById('addPayoutForm').reset();
-    if (typeof loadPayouts === 'function') loadPayouts();
+    const result = await res.json();
+    if (result.status === 'success') {
+        alert('Disbursed Case Saved & Payout Invoice Generated!');
+        document.getElementById('addPayoutForm').reset();
+        loadPayouts();
+    } else {
+        alert('Error: ' + result.message);
+    }
 });
 
-// Load Payout Ledger & Invoices
 async function loadPayouts() {
     const res = await fetch('/api/payouts/all');
-    const data = await res.json();
+    const result = await res.json();
     const tbody = document.getElementById('payoutTableBody');
+    if (!tbody) return;
+
     tbody.innerHTML = '';
-    if (data.data) {
-        data.data.forEach(item => {
-            tbody.innerHTML += `<tr>
-                <td><code>${item.invoiceNumber}</code></td>
-                <td><strong>${item.agentName}</strong><br><small class="text-muted">${item.agentEmail}</small></td>
-                <td>${item.applicantName} <br><span class="badge bg-secondary">${item.bankName}</span></td>
-                <td><span class="badge bg-info text-dark">${item.productType}</span></td>
-                <td>₹${Number(item.loanAmount).toLocaleString()}</td>
-                <td>${item.payoutPercentage}%</td>
-                <td class="text-success fw-bold">₹${Number(item.payoutAmount).toLocaleString()}</td>
+    (result.data || []).forEach(item => {
+        tbody.innerHTML += `
+            <tr>
+                <td><strong>${item.invoiceNumber}</strong></td>
+                <td>${item.agentName}<br><small class="text-muted">${item.agentEmail}</small></td>
+                <td>${item.applicantName}<br><small class="text-muted">${item.bankName}</small></td>
+                <td><span class="badge bg-primary">${item.loanProduct}</span></td>
+                <td>₹${item.disbursedAmount.toLocaleString()}</td>
+                <td>${item.payoutRate}%</td>
+                <td class="fw-bold text-success">₹${item.netPayoutAmount.toLocaleString()}</td>
                 <td>
-                    <button class="btn btn-sm btn-outline-primary" onclick='viewInvoice(${JSON.stringify(item)})'>
-                        <i class="bi bi-receipt"></i> Invoice
+                    <button class="btn btn-sm btn-outline-dark" onclick="viewInvoice('${item._id}')">
+                        <i class="bi bi-file-earmark-pdf"></i> Invoice
                     </button>
                 </td>
-            </tr>`;
-        });
-    }
+            </tr>
+        `;
+    });
 }
 
-// Generate & View Invoice Popup
-function viewInvoice(data) {
-    const container = document.getElementById('printableInvoice');
-    container.innerHTML = `
-        <div class="border p-4 rounded bg-white">
-            <div class="d-flex justify-content-between border-bottom pb-3">
+async function viewInvoice(id) {
+    const res = await fetch('/api/payouts/all');
+    const result = await res.json();
+    const item = (result.data || []).find(p => p._id === id);
+    if (!item) return;
+
+    const modalBody = document.getElementById('printableInvoice');
+    modalBody.innerHTML = `
+        <div class="border p-4 bg-white rounded">
+            <div class="d-flex justify-content-between border-bottom pb-3 mb-3">
                 <div>
-                    <h4 class="fw-bold text-primary mb-0">DSA SaaS Engine</h4>
-                    <small class="text-muted">Commission & Disbursed Payout Statement</small>
+                    <h4 class="fw-bold text-primary mb-0">DSA SAAS ENGINE</h4>
+                    <small class="text-muted">Commission & Payout Disbursement Statement</small>
                 </div>
                 <div class="text-end">
-                    <h6 class="fw-bold mb-0">${data.invoiceNumber}</h6>
-                    <small>Date: ${new Date(data.createdAt).toLocaleDateString()}</small>
+                    <h5 class="fw-bold text-dark mb-0">INVOICE</h5>
+                    <small class="text-muted">No: ${item.invoiceNumber}</small>
                 </div>
             </div>
 
-            <div class="row my-3">
+            <div class="row mb-4">
                 <div class="col-6">
-                    <p class="mb-1"><strong>Agent / DSA Details:</strong></p>
-                    <h6>${data.agentName}</h6>
-                    <p class="text-muted mb-0">${data.agentEmail}</p>
+                    <strong class="text-secondary">PAID TO AGENT:</strong>
+                    <div class="fw-bold fs-5">${item.agentName}</div>
+                    <div>Email: ${item.agentEmail}</div>
                 </div>
                 <div class="col-6 text-end">
-                    <p class="mb-1"><strong>Status:</strong></p>
-                    <span class="badge bg-success">${data.status}</span>
+                    <strong class="text-secondary">DATE:</strong>
+                    <div>${new Date(item.createdAt).toLocaleDateString('en-IN')}</div>
                 </div>
             </div>
 
-            <table class="table table-bordered my-3">
+            <table class="table table-bordered">
                 <thead class="table-light">
                     <tr>
-                        <th>Customer</th>
-                        <th>Bank</th>
+                        <th>Customer / Applicant</th>
+                        <th>Bank / NBFC</th>
                         <th>Product</th>
-                        <th>Disbursed Amount</th>
-                        <th>Payout Rate</th>
+                        <th>Disbursed Loan Amt</th>
+                        <th>Commission Rate</th>
                         <th>Payout Earned</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td>${data.applicantName}</td>
-                        <td>${data.bankName}</td>
-                        <td>${data.productType}</td>
-                        <td>₹${Number(data.loanAmount).toLocaleString()}</td>
-                        <td>${data.payoutPercentage}%</td>
-                        <td class="fw-bold text-success">₹${Number(data.payoutAmount).toLocaleString()}</td>
+                        <td>${item.applicantName}</td>
+                        <td>${item.bankName}</td>
+                        <td>${item.loanProduct}</td>
+                        <td>₹${item.disbursedAmount.toLocaleString()}</td>
+                        <td>${item.payoutRate}%</td>
+                        <td class="fw-bold text-success">₹${item.netPayoutAmount.toLocaleString()}</td>
                     </tr>
                 </tbody>
             </table>
 
-            <div class="d-flex justify-content-between align-middle pt-3 border-top">
-                <span class="fw-bold fs-5">Total Commission Payable:</span>
-                <span class="fw-bold fs-4 text-success">₹${Number(data.payoutAmount).toLocaleString()}</span>
+            <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                <small class="text-muted">This is a system-generated invoice for DSA channel payouts.</small>
+                <h4 class="fw-bold text-success mb-0">Total: ₹${item.netPayoutAmount.toLocaleString()}</h4>
             </div>
         </div>
-    `;
-    const invoiceModal = new bootstrap.Modal(document.getElementById('invoiceModal'));
-    invoiceModal.show();
+    ];
+
+    const bsModal = new bootstrap.Modal(document.getElementById('invoiceModal'));
+    bsModal.show();
 }
