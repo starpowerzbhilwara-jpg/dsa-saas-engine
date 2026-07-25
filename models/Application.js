@@ -1,35 +1,21 @@
 const mongoose = require('mongoose');
 
 const applicationSchema = new mongoose.Schema({
-  // Customer Details
-  customerName: { type: String, required: true },
-  customerPhone: { type: String, required: true },
-  panCard: { type: String, required: true },
-  
-  // Financial & CIBIL Status
-  cibilScore: { type: Number, default: 0 },
-  cibilStatus: { 
-    type: String, 
-    enum: ['Pending', 'Verified', 'Low Score', 'Rejected'], 
-    default: 'Pending' 
-  },
-
-  // Banking Details
-  selectedBank: { type: String, required: true }, // e.g., HDFC, ICICI, SBI
-  loanAmount: { type: Number, required: true },
-  loanType: { type: String, default: 'Personal Loan' }, // Personal, Home, Business Loan
-
-  // Staff & Assignment Workflow
-  createdByAgent: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Agent ID
-  assignedCaller: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Calling Staff ID
-
-  // Status Track
-  applicationStatus: { 
-    type: String, 
-    enum: ['New Lead', 'Calling In Progress', 'Documents Pending', 'Sent to Bank', 'Disbursed', 'Rejected'], 
-    default: 'New Lead' 
-  },
-  remarks: { type: String }
+    fullName: { type: String, required: true },
+    phone: { type: String, required: true },
+    email: { type: String },
+    pan: { type: String },
+    loanType: { type: String, default: 'Personal Loan' }, // Personal, Business, Home Loan
+    loanAmount: { type: Number },
+    status: { 
+        type: String, 
+        enum: ['Pending', 'In Process', 'Approved', 'Rejected', 'Disbursed'], 
+        default: 'Pending' 
+    },
+    cibilScore: { type: Number, default: 0 },
+    cibilData: { type: Object, default: {} }, // Parsed CIBIL Json
+    assignedTo: { type: String, default: 'Unassigned' }, // Telecaller / Staff
+    source: { type: String, default: 'Manual Entry' } // Manual or Bulk Excel
 }, { timestamps: true });
 
-module.exports = mongoose.models.Application || mongoose.model('Application', applicationSchema);
+module.exports = mongoose.model('Application', applicationSchema);
