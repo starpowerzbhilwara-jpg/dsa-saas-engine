@@ -1,16 +1,13 @@
 const mongoose = require('mongoose');
 
-const SalesManagerSchema = new mongoose.Schema({
-  bankName: { type: String, required: true }, // e.g. HDFC, ICICI, Bajaj Finance
-  state: { type: String, required: true },    // e.g. Rajasthan, Maharashtra
-  district: { type: String, required: true }, // e.g. Jaipur, Mumbai
-  smName: { type: String, required: true },   // Sales Manager Name
-  smPhone: { type: String, required: true },
-  smEmail: { type: String },
-  loanType: { type: String, default: 'Personal / Business / Home Loan' },
-  minCibil: { type: Number, default: 650 },
-  minSalary: { type: Number, default: 15000 },
-  eligibilityNotes: { type: String, default: 'Standard Bank Policy Applies' }
+const salesManagerSchema = new mongoose.Schema({
+    state: { type: String, required: true },
+    city: { type: String, required: true },
+    smName: { type: String, required: true },
+    email: { type: String, default: '' },
+    mobile: { type: String, required: true },
+    post: { type: String, default: 'Sales Manager' }, // e.g. ASM, RSM, SM
+    product: { type: String, default: 'All' } // e.g. HL, LAP, PL, BL
 }, { timestamps: true });
 
-module.exports = mongoose.model('SalesManager', SalesManagerSchema);
+module.exports = mongoose.model('SalesManager', salesManagerSchema);
