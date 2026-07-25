@@ -9,6 +9,9 @@ const User = require('./models/User');
 const Application = require('./models/Application');
 const BankConfig = require('./models/BankConfig');
 
+const leadRoutes = require('./routes/leadRoutes');
+app.use('/api/leads', leadRoutes);
+
 const userRoutes = require('./routes/userRoutes');
 const applicationRoutes = require('./routes/applicationRoutes');
 const payoutRoutes = require('./routes/payoutRoutes');
