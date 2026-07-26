@@ -48,6 +48,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/payouts', payoutRoutes);
 app.use('/api/sm', smRoutes);
+// Register Dynamic Engine
+app.use('/api/dynamic', require('./routes/dynamicRoutes'));
 
 // Server Start
 const PORT = process.env.PORT || 3000;

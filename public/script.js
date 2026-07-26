@@ -1,63 +1,104 @@
-// Data Save Karne Ka Function
-async function saveLeadData(event) {
-    event.preventDefault();
-    
-    const form = event.target;
-    const formData = new FormData(form);
-    const data = {};
+// =========================================================
+// 🚀 100% FULLY AUTOMATIC ENGINE (NO MANUAL HTML SETUP REQUIRED)
+// =========================================================
 
-    // Form ka saara data automatic JSON me convert hoga
+// Automatic Module Detector (Auto Detects form context)
+function detectModuleName(form) {
+    // 1. Agar HTML me explicit data-module likha hai toh wo le
+    if (form.getAttribute('data-module')) return form.getAttribute('data-module');
+    
+    // 2. Agar Form ki ID hai (e.g. 'dsaRegisterForm' -> 'dsa_register')
+    if (form.id) return form.id.replace(/form/gi, '').toLowerCase();
+
+    // 3. Page URL ke hisab se auto-detect kare (e.g. 'dsa-register.html' -> 'dsa_register')
+    const path = window.location.pathname.split('/').pop().replace('.html', '');
+    if (path && path !== '' && path !== 'index') return path;
+
+    // 4. Default fallback module
+    return 'lead';
+}
+
+// Automatic Form Interceptor (Saves ANY form without modifying HTML)
+document.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const form = e.target;
+
+    // Direct Form values extract karein
+    const formData = new FormData(form);
+    const payload = {};
     formData.forEach((value, key) => {
-        data[key] = value;
+        if (value && value.trim() !== '') {
+            payload[key] = value.trim();
+        }
     });
 
+    // Auto Detect Module Name
+    const moduleName = detectModuleName(form);
+
+    // UI Submit Button Auto-Loader
+    const submitBtn = form.querySelector('button[type="submit"]') || form.querySelector('button');
+    const originalBtnText = submitBtn ? submitBtn.innerText : 'Submitting...';
+    if (submitBtn) submitBtn.innerText = 'Saving...';
+
     try {
-        const response = await fetch('/api/leads/add', { // Aapke leadRoutes ka exact path
+        // Dynamic Universal Backend Route
+        const response = await fetch(`/api/dynamic/save-data/${moduleName}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
+            body: JSON.stringify(payload)
         });
 
         const result = await response.json();
 
-        if (result.success) {
-            alert('Data Saved Successfully!');
-            form.reset();
-            loadBoardData(); // Live Board ko refresh karein
+        if (response.ok && result.success) {
+            alert('✅ Data Automatically Saved!');
+            form.reset(); // Clear input boxes
+            
+            // Auto Table/Board Data Refresh
+            loadDynamicTableData(moduleName);
         } else {
-            alert('Error: ' + result.message);
+            alert('❌ Save Error: ' + (result.message || 'Error occurred'));
         }
     } catch (err) {
-        console.error("Fetch Error:", err);
-        alert('Server communication error');
+        console.error('Auto Save Engine Error:', err);
+        alert('❌ Server Connection Error!');
+    } finally {
+        if (submitBtn) submitBtn.innerText = originalBtnText;
     }
-}
+});
 
-// Board / Table me Data Auto Load Karne Ka Function
-async function loadBoardData() {
-    const tableBody = document.querySelector('#dsaTableBody') || document.querySelector('tbody');
+// Universal Dynamic Table Loader
+async function loadDynamicTableData(moduleName) {
+    const tableBody = document.querySelector('tbody');
     if (!tableBody) return;
 
-    try {
-        const response = await fetch('/api/leads/all');
-        const result = await response.json();
+    if (!moduleName) {
+        const dummyForm = document.querySelector('form');
+        moduleName = dummyForm ? detectModuleName(dummyForm) : 'lead';
+    }
 
-        if (result.success && result.data.length > 0) {
-            tableBody.innerHTML = result.data.map(item => `
-                <tr>
-                    <td><b>${item.dsaCode || 'DIRECT'}</b></td>
-                    <td>${item.applicantName || item.name || 'N/A'}</td>
-                    <td>${item.phone || item.email || 'N/A'}</td>
-                    <td>${item.loanProduct || item.role || 'General'}</td>
-                </tr>
-            `).join('');
+    try {
+        const res = await fetch(`/api/dynamic/get-data/${moduleName}`);
+        const result = await res.json();
+
+        if (result.success && result.data && result.data.length > 0) {
+            tableBody.innerHTML = result.data.map((row, index) => {
+                const keys = Object.keys(row).filter(k => k !== '_id' && k !== '__v');
+                const cells = keys.slice(0, 5).map(key => `<td>${row[key] || '-'}</td>`).join('');
+                return `<tr>
+                    <td><b>#${index + 1}</b></td>
+                    ${cells}
+                </tr>`;
+            }).join('');
         } else {
-            tableBody.innerHTML = `<tr><td colspan="4" class="text-center">No Data Registered Yet</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">No records found.</td></tr>`;
         }
     } catch (err) {
-        console.error("Board Load Error:", err);
+        console.error('Auto Load Table Error:', err);
     }
 }
 
-// Page Load hone par Board Data automatically dikhe
-document.addEventListener('DOMContentLoaded', loadBoardData);
+// Page load hone par table auto refresh
+document.addEventListener('DOMContentLoaded', () => {
+    loadDynamicTableData();
+});
