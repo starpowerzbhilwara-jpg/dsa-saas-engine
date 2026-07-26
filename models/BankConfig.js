@@ -3,13 +3,13 @@ const mongoose = require('mongoose');
 const bankConfigSchema = new mongoose.Schema({
     bankName: { 
         type: String, 
-        required: [true, 'Bank name is required'],
+        required: [true, 'Bank Name is required'], 
         trim: true 
     },
-    code: {
-        type: String,
-        default: '',
-        trim: true
+    code: { 
+        type: String, 
+        default: '', 
+        trim: true 
     },
     minSalary: { 
         type: Number, 
@@ -23,21 +23,18 @@ const bankConfigSchema = new mongoose.Schema({
         type: Number, 
         default: 650 
     },
-    maxBouncingAllowed: { 
-        type: Number, 
-        default: 2 
-    },
-    interestRate: { 
-        type: Number, 
-        default: 10.5 
-    },
-    maxTenureMonths: { 
-        type: Number, 
-        default: 60 
+    allowedStates: [{ 
+        type: String, 
+        default: 'ALL' // Pan India support
+    }],
+    utmLink: { 
+        type: String, 
+        required: [true, 'Bank/NBFC Direct UTM Login Link is required'],
+        trim: true 
     },
     payoutPercentage: { 
         type: Number, 
-        default: 1.5 // DSA Commission % for this bank
+        default: 2.0 // Admin commission percentage from Bank
     },
     isActive: { 
         type: Boolean, 
@@ -46,8 +43,5 @@ const bankConfigSchema = new mongoose.Schema({
 }, { 
     timestamps: true 
 });
-
-bankConfigSchema.index({ bankName: 1 });
-bankConfigSchema.index({ isActive: 1 });
 
 module.exports = mongoose.model('BankConfig', bankConfigSchema);
