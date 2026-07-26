@@ -1,72 +1,60 @@
 const express = require('express');
 const router = express.Router();
-const Lead = require('../models/Lead');
+// Apka Lead ya Application Model import karein (jo bhi aap use kar rahe hain)
+// const Lead = require('../models/Lead'); 
 
-// POST: Add / File-Login New Lead
+// POST: Add File Login / Calling Lead Data
 router.post('/file-login', async (req, res) => {
-    try {
-        console.log("Incoming Data:", req.body); // Terminal me log dekhein
-
-        const {
-            dsaCode,
-            applicantName,
-            phone,
-            city,
-            loanProduct,
-            monthlyIncome,
-            existingEmi,
-            bouncingCount,
-            requestedAmount
-        } = req.body;
-
-        // Basic Validation
-        if (!applicantName || !phone) {
-            return res.status(400).json({ 
-                status: 'error', 
-                message: 'Name and Phone number are required fields.' 
-            });
-        }
-
-        // New Lead Create Karein
-        const newLead = new Lead({
-            dsaCode: dsaCode || 'DIRECT',
-            applicantName,
-            phone,
-            city,
-            loanProduct,
-            monthlyIncome: Number(monthlyIncome) || 0,
-            existingEmi: Number(existingEmi) || 0,
-            bouncingCount: Number(bouncingCount) || 0,
-            requestedAmount: Number(requestedAmount) || 0
-        });
-
-        // Database me Save Karein
-        const savedLead = await newLead.save();
-
-        return res.status(200).json({
-            status: 'success',
-            message: 'Lead saved successfully!',
-            data: savedLead
-        });
-
-    } catch (error) {
-        console.error("Save Lead Error:", error);
-        return res.status(500).json({
-            status: 'error',
-            message: 'Server error while saving lead',
-            error: error.message
-        });
+  try {
+    // Safety check: Agar req.body khali / undefined aaye
+    if (!req.body || Object.keys(req.body).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Request body is empty or invalid JSON. Please send valid data."
+      });
     }
-});
 
-// GET: Fetch All Leads (Dashboard par dikhane ke liye)
-router.get('/all', async (req, res) => {
-    try {
-        const leads = await Lead.find().sort({ createdAt: -1 });
-        res.status(200).json({ status: 'success', data: leads });
-    } catch (error) {
-        res.status(500).json({ status: 'error', message: error.message });
+    // Default object destructuring taaki TypeError na aaye
+    const { 
+      dsaCode = 'DEFAULT_DSA', 
+      fullName = '', 
+      phoneNumber = '', 
+      loanType = '' 
+    } = req.body;
+
+    // Optional Validation Check
+    if (!phoneNumber && !fullName) {
+      return res.status(400).json({
+        success: false,
+        message: "Full Name or Phone Number is required"
+      });
     }
+
+    // DATABASE SAVE LOGIC (Model ke according uncomment/adjust karein)
+    /*
+    const newLead = new Lead({
+      dsaCode,
+      fullName,
+      phoneNumber,
+      loanType
+    });
+    const savedData = await newLead.save();
+    */
+
+    // Demo Response
+    return res.status(200).json({
+      success: true,
+      message: "Lead added successfully!",
+      data: { dsaCode, fullName, phoneNumber, loanType }
+    });
+
+  } catch (error) {
+    console.error("Save Lead Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error: " + error.message
+    });
+  }
 });
 
 module.exports = router;

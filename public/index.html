@@ -45,19 +45,17 @@
     <!-- Tab Contents -->
     <div class="tab-content" id="pills-tabContent">
 
-        <!-- TAB 1: FILE LOGIN & DSA BUSINESS TRACKING -->
+        <!-- TAB 1: FILE LOGIN -->
         <div class="tab-pane fade show active" id="tab-apply">
             <div class="card card-custom p-4 mb-4">
                 <h4 class="fw-bold text-primary mb-3"><i class="bi bi-cloud-arrow-up-fill"></i> Step 1: File Login & DSA Code Tracking</h4>
                 
                 <form id="fileLoginForm" class="row g-3">
-                    <!-- DSA Tracking Input Code -->
                     <div class="col-md-12 bg-light p-3 rounded border border-primary">
                         <label class="form-label fw-bold text-primary mb-0"><i class="bi bi-card-heading"></i> Unique DSA Code (e.g. DSA101)</label>
                         <input type="text" id="flDsaCode" class="form-control mt-1" required placeholder="Enter Registered Unique DSA Code (e.g., DSA101)">
                     </div>
 
-                    <!-- Customer Basic Info -->
                     <div class="col-md-3">
                         <label class="form-label fw-bold">Customer Full Name</label>
                         <input type="text" id="flName" class="form-control" required placeholder="e.g. Rahul Sharma">
@@ -80,7 +78,6 @@
                         </select>
                     </div>
 
-                    <!-- Financial Values -->
                     <div class="col-md-3">
                         <label class="form-label fw-bold">Monthly Net Salary (₹)</label>
                         <input type="number" id="flIncome" class="form-control" required placeholder="e.g. 45000">
@@ -98,18 +95,17 @@
                         <input type="number" id="flReqAmt" class="form-control" required placeholder="e.g. 500000">
                     </div>
 
-                    <!-- Document Upload File Fields -->
                     <div class="col-md-3">
                         <label class="form-label fw-bold">PAN Card (PDF/Image)</label>
-                        <input type="file" id="panCardFile" name="panCard" class="form-control" required>
+                        <input type="file" id="panCardFile" name="panCard" class="form-control">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-bold">Aadhaar Card (PDF/Image)</label>
-                        <input type="file" id="aadhaarCardFile" name="aadhaarCard" class="form-control" required>
+                        <input type="file" id="aadhaarCardFile" name="aadhaarCard" class="form-control">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-bold">Bank Statement (PDF)</label>
-                        <input type="file" id="bankStatementFile" name="bankStatement" class="form-control" required>
+                        <input type="file" id="bankStatementFile" name="bankStatement" class="form-control">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-bold">Salary Slip / ITR (PDF)</label>
@@ -118,21 +114,14 @@
 
                     <div class="col-12 text-end mt-4">
                         <button type="submit" class="btn btn-primary btn-lg px-5 fw-bold">
-                            <i class="bi bi-cpu-fill"></i> Submit File Login & Calculate Eligible Banks
+                            <i class="bi bi-cpu-fill"></i> Submit File Login
                         </button>
                     </div>
                 </form>
             </div>
-
-            <!-- UNLOCKED MATCHING BANKS BANNER (AUTO APPEARS AFTER SUBMIT) -->
-            <div id="loggedFileDetails" class="d-none">
-                <div id="camSummaryBanner" class="mb-4"></div>
-                <h5 class="fw-bold text-dark mb-3"><i class="bi bi-unlock-fill text-success"></i> Unlocked Eligible Banks & Logins For Logged File</h5>
-                <div id="eligibleBanksList" class="row g-3"></div>
-            </div>
         </div>
 
-        <!-- TAB 2: SM DIRECTORY & BULK UPLOAD -->
+        <!-- TAB 2: SM DIRECTORY -->
         <div class="tab-pane fade" id="tab-sm">
             <div class="card card-custom p-4 mb-4">
                 <h5 class="fw-bold text-dark"><i class="bi bi-file-earmark-excel-fill text-success"></i> Bulk Excel Upload All India SM List</h5>
@@ -161,6 +150,27 @@
                     <div class="col-md-1"><button type="submit" class="btn btn-primary w-100">Save</button></div>
                 </form>
             </div>
+
+            <!-- SM Directory Table -->
+            <div class="card card-custom p-4">
+                <h5 class="fw-bold text-dark mb-3"><i class="bi bi-journal-text"></i> Sales Managers List</h5>
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>State</th>
+                                <th>City</th>
+                                <th>SM Name</th>
+                                <th>Mobile</th>
+                                <th>Product</th>
+                            </tr>
+                        </thead>
+                        <tbody id="smTableBody">
+                            <tr><td colspan="5" class="text-center text-muted">No SM records added yet.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
         <!-- TAB 3: CALLING DATA & LEADS -->
@@ -181,6 +191,26 @@
                     <div class="col-md-2"><button type="submit" class="btn btn-success w-100">Add Lead</button></div>
                 </form>
             </div>
+
+            <!-- Calling Leads Table -->
+            <div class="card card-custom p-4">
+                <h5 class="fw-bold text-dark mb-3"><i class="bi bi-list-task"></i> Calling Data & Leads List</h5>
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Full Name</th>
+                                <th>Phone Number</th>
+                                <th>Loan Type</th>
+                                <th>Date Added</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leadsTableBody">
+                            <tr><td colspan="4" class="text-center text-muted">No leads available.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
         <!-- TAB 4: BANK LINKS & CREDENTIALS -->
@@ -194,6 +224,26 @@
                     <div class="col-md-2"><input type="text" id="bankPassword" class="form-control" placeholder="Password"></div>
                     <div class="col-md-2"><button type="submit" class="btn btn-dark w-100">Save Config</button></div>
                 </form>
+            </div>
+
+            <!-- Bank Links Table -->
+            <div class="card card-custom p-4">
+                <h5 class="fw-bold text-dark mb-3"><i class="bi bi-bank2"></i> Saved Bank Links & Credentials</h5>
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Bank Name</th>
+                                <th>Portal / UTM Link</th>
+                                <th>User ID</th>
+                                <th>Password</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bankConfigTableBody">
+                            <tr><td colspan="4" class="text-center text-muted">No Bank Configurations saved.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -220,33 +270,32 @@
                 </form>
             </div>
 
-            <button class="btn btn-outline-success mb-3" onclick="toggleView('payoutTableWrapper', loadPayouts)"><i class="bi bi-eye-fill"></i> Show / Hide DSA Business Ledger</button>
-
-            <div id="payoutTableWrapper" class="card card-custom p-3 d-none">
+            <div class="card card-custom p-4">
+                <h5 class="fw-bold text-dark mb-3"><i class="bi bi-journal-check"></i> DSA Business Ledger</h5>
                 <div class="table-responsive">
                     <table class="table table-striped align-middle">
                         <thead class="table-dark">
                             <tr>
-                                <th>Invoice No</th>
                                 <th>DSA Code & Name</th>
                                 <th>Customer / Bank</th>
                                 <th>Product</th>
                                 <th>Disbursed Amt</th>
                                 <th>Payout (%)</th>
                                 <th>Total Commission</th>
-                                <th>Action</th>
                             </tr>
                         </thead>
-                        <tbody id="payoutTableBody"></tbody>
+                        <tbody id="payoutTableBody">
+                            <tr><td colspan="6" class="text-center text-muted">No payout cases recorded.</td></tr>
+                        </tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- TAB 6: AGENT / USERS NETWORK & UNIQUE ID GENERATOR -->
+        <!-- TAB 6: AGENT / USERS NETWORK -->
         <div class="tab-pane fade" id="tab-users">
             <div class="card card-custom p-4 mb-4">
-                <h5 class="fw-bold text-dark"><i class="bi bi-person-badge-fill text-info"></i> Register New DSA Partner (Auto-Generates Unique DSA ID)</h5>
+                <h5 class="fw-bold text-dark"><i class="bi bi-person-badge-fill text-info"></i> Register New DSA Partner</h5>
                 <form id="addUserForm" class="row g-2 mt-2">
                     <div class="col-md-3"><input type="text" id="usrName" class="form-control" placeholder="DSA Full Name" required></div>
                     <div class="col-md-3"><input type="email" id="usrEmail" class="form-control" placeholder="DSA Email ID" required></div>
@@ -263,7 +312,6 @@
                 </form>
             </div>
 
-            <!-- SEARCH & DISPLAY DSA NETWORK LIST -->
             <div class="card card-custom p-4">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="fw-bold text-dark mb-0"><i class="bi bi-search"></i> DSA Network Search & Directory</h5>
@@ -278,11 +326,10 @@
                                 <th>DSA Partner Name</th>
                                 <th>Email Address</th>
                                 <th>Role</th>
-                                <th>Registered Date</th>
                             </tr>
                         </thead>
                         <tbody id="usersListTableBody">
-                            <tr><td colspan="5" class="text-center text-muted">Click Refresh to Load Registered DSAs...</td></tr>
+                            <tr><td colspan="4" class="text-center text-muted">Click Refresh to Load Registered DSAs...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -290,22 +337,6 @@
         </div>
 
     </div>
-</div>
-
-<!-- INVOICE MODAL -->
-<div class="modal fade" id="invoiceModal" tabindex="-1">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header bg-dark text-white">
-        <h5 class="modal-title"><i class="bi bi-file-earmark-pdf"></i> Commission Payout Invoice</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body p-4" id="printableInvoice"></div>
-      <div class="modal-footer">
-        <button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> Print / Save PDF</button>
-      </div>
-    </div>
-  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

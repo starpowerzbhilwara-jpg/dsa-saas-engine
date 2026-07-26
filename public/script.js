@@ -1,169 +1,90 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Application Load hote hi saara data load karein
+    loadLeads();
+    loadSM();
+    loadBankConfigs();
+    loadPayouts();
+    loadUsersList();
 
-    // Helper: Form Object Exporter
-    function getFormPayload(formElement) {
-        const payload = {};
-        const inputs = formElement.querySelectorAll('input, select, textarea');
-        inputs.forEach(input => {
-            if (input.name || input.id) {
-                const key = input.name || input.id;
-                payload[key] = input.value;
-            }
-        });
-        return payload;
-    }
-
-    // ----------------------------------------------------
-    // 1. FILE LOGIN WITH DOCUMENTS ENGINE
-    // ----------------------------------------------------
+    // 1. FILE LOGIN FORM SUBMIT
     const fileLoginForm = document.getElementById('fileLoginForm');
     if (fileLoginForm) {
         fileLoginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-
-            const formData = new FormData();
-            formData.append('applicantName', document.getElementById('flName')?.value || '');
-            formData.append('phone', document.getElementById('flPhone')?.value || '');
-            formData.append('city', document.getElementById('flCity')?.value || '');
-            formData.append('loanProduct', document.getElementById('flProduct')?.value || '');
-            formData.append('monthlyIncome', document.getElementById('flIncome')?.value || 0);
-            formData.append('existingEmi', document.getElementById('flEmi')?.value || 0);
-            formData.append('bouncingCount', document.getElementById('flBounce')?.value || 0);
-            formData.append('requestedAmount', document.getElementById('flReqAmt')?.value || 0);
-
-            const pan = document.getElementById('panCardFile')?.files[0];
-            const aadhaar = document.getElementById('aadhaarCardFile')?.files[0];
-            const stmt = document.getElementById('bankStatementFile')?.files[0];
-            const slip = document.getElementById('salarySlipFile')?.files[0];
-
-            if (pan) formData.append('panCard', pan);
-            if (aadhaar) formData.append('aadhaarCard', aadhaar);
-            if (stmt) formData.append('bankStatement', stmt);
-            if (slip) formData.append('salarySlip', slip);
+            const payload = {
+                dsaCode: document.getElementById('flDsaCode').value,
+                fullName: document.getElementById('flName').value,
+                phoneNumber: document.getElementById('flPhone').value,
+                city: document.getElementById('flCity').value,
+                product: document.getElementById('flProduct').value,
+                monthlyIncome: document.getElementById('flIncome').value,
+                emi: document.getElementById('flEmi').value,
+                bounce: document.getElementById('flBounce').value,
+                requestedAmount: document.getElementById('flReqAmt').value
+            };
 
             try {
                 const res = await fetch('/api/leads/file-login', {
                     method: 'POST',
-                    body: formData
-                });
-                const result = await res.json();
-                if (res.ok && result.status === 'success') {
-                    alert('File Uploaded & Processed Successfully!');
-                    renderCAMAndUnlockedBanks(result.data || result);
-                } else {
-                    alert('Upload Failed: ' + (result.message || 'Error occurred'));
-                }
-            } catch (err) {
-                console.error("Upload Error:", err);
-                alert('Server Error during file upload.');
-            }
-        });
-    }
-
-    // ----------------------------------------------------
-    // 2. BANK LINKS & CREDENTIALS ADD FORM
-    // ----------------------------------------------------
-    const addBankForm = document.getElementById('addBankForm') || document.querySelector('form[action*="bank"]');
-    if (addBankForm) {
-        addBankForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const payload = getFormPayload(addBankForm);
-
-            try {
-                const res = await fetch('/api/banks/add', {
-                    method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                const result = await res.json();
-                if (res.ok) {
-                    alert('Bank Entry Added Successfully!');
-                    addBankForm.reset();
-                    if (typeof loadBanks === 'function') loadBanks();
+                const data = await res.json();
+                if (data.success) {
+                    alert('File Login Submitted Successfully!');
+                    fileLoginForm.reset();
                 } else {
-                    alert('Error: ' + (result.message || 'Failed to add Bank'));
+                    alert('Error: ' + data.message);
                 }
             } catch (err) {
-                console.error("Bank Save Error:", err);
-                alert('Server Error during saving Bank details.');
+                console.error(err);
+                alert('Server Connection Error!');
             }
         });
     }
 
-    // ----------------------------------------------------
-    // 3. CALLING DATA & LEADS FORM
-    // ----------------------------------------------------
-    const addLeadForm = document.getElementById('addLeadForm') || document.querySelector('form[action*="lead"]');
+    // 2. CALLING LEAD FORM SUBMIT
+    const addLeadForm = document.getElementById('addLeadForm');
     if (addLeadForm) {
         addLeadForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const payload = getFormPayload(addLeadForm);
-
-            try {
-                const res = await fetch('/api/leads/add', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const result = await res.json();
-                if (res.ok) {
-                    alert('Lead Entry Saved Successfully!');
-                    addLeadForm.reset();
-                    if (typeof loadLeads === 'function') loadLeads();
-                } else {
-                    alert('Error: ' + (result.message || 'Failed to save Lead'));
-                }
-            } catch (err) {
-                console.error("Lead Save Error:", err);
-                alert('Server Error while saving Lead.');
-            }
-        });
-    }
-
-    // ----------------------------------------------------
-    // 4. DSA / AGENT NETWORK FORM
-    // ----------------------------------------------------
-    const addAgentForm = document.getElementById('addAgentForm') || document.getElementById('addUserForm');
-    if (addAgentForm) {
-        addAgentForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const payload = getFormPayload(addAgentForm);
-
-            try {
-                const res = await fetch('/api/users/add', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const result = await res.json();
-                if (res.ok) {
-                    alert('Agent/DSA Registered Successfully!');
-                    addAgentForm.reset();
-                    if (typeof loadAgents === 'function') loadAgents();
-                } else {
-                    alert('Error: ' + (result.message || 'Failed to register Agent'));
-                }
-            } catch (err) {
-                console.error("Agent Save Error:", err);
-                alert('Server Error while adding Agent.');
-            }
-        });
-    }
-
-    // ----------------------------------------------------
-    // 5. SALES MANAGER (SINGLE & BULK EXCEL)
-    // ----------------------------------------------------
-    const singleSmForm = document.getElementById('addSmForm');
-    if (singleSmForm) {
-        singleSmForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const inputs = singleSmForm.querySelectorAll('input, select');
             const payload = {
-                state: inputs[0]?.value || '',
-                city: inputs[1]?.value || '',
-                smName: inputs[2]?.value || '',
-                mobile: inputs[3]?.value || '',
-                loanProduct: inputs[4]?.value || 'HL'
+                fullName: document.getElementById('leadName').value,
+                phoneNumber: document.getElementById('leadPhone').value,
+                loanType: document.getElementById('leadType').value
+            };
+
+            try {
+                const res = await fetch('/api/leads/file-login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert('Lead Added!');
+                    addLeadForm.reset();
+                    loadLeads();
+                } else {
+                    alert('Failed: ' + data.message);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        });
+    }
+
+    // 3. SM ADD FORM SUBMIT
+    const addSmForm = document.getElementById('addSmForm');
+    if (addSmForm) {
+        addSmForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                state: document.getElementById('smState').value,
+                city: document.getElementById('smCity').value,
+                name: document.getElementById('smName').value,
+                mobile: document.getElementById('smMobile').value,
+                product: document.getElementById('smProduct').value
             };
 
             try {
@@ -172,35 +93,61 @@ document.addEventListener('DOMContentLoaded', () => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                const result = await res.json();
-                if (res.ok) {
-                    alert('Sales Manager Added Successfully!');
-                    singleSmForm.reset();
-                } else {
-                    alert('Failed: ' + (result.message || 'Error occurred'));
+                const data = await res.json();
+                if (data.success) {
+                    alert('Sales Manager Added!');
+                    addSmForm.reset();
+                    loadSM();
                 }
             } catch (err) {
-                console.error("SM Save Error:", err);
-                alert('Server Error while saving Sales Manager.');
+                console.error(err);
             }
         });
     }
 
-    // ----------------------------------------------------
-    // 6. BANK PAYOUTS FORM
-    // ----------------------------------------------------
+    // 4. BANK CONFIG SUBMIT
+    const addBankConfigForm = document.getElementById('addBankConfigForm');
+    if (addBankConfigForm) {
+        addBankConfigForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                bankName: document.getElementById('bankName').value,
+                portalUrl: document.getElementById('portalUrl').value,
+                userId: document.getElementById('userId').value,
+                bankPassword: document.getElementById('bankPassword').value
+            };
+
+            try {
+                const res = await fetch('/api/applications/bank-config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert('Bank Credentials Saved!');
+                    addBankConfigForm.reset();
+                    loadBankConfigs();
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        });
+    }
+
+    // 5. PAYOUT SUBMIT
     const addPayoutForm = document.getElementById('addPayoutForm');
     if (addPayoutForm) {
         addPayoutForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const payload = {
-                agentName: document.getElementById('payAgentName')?.value || '',
-                agentEmail: document.getElementById('payAgentEmail')?.value || '',
-                applicantName: document.getElementById('payApplicant')?.value || '',
-                bankName: document.getElementById('payBank')?.value || '',
-                loanProduct: document.getElementById('payProduct')?.value || '',
-                disbursedAmount: Number(document.getElementById('payAmount')?.value || 0),
-                payoutRate: Number(document.getElementById('payRate')?.value || 0)
+                agentName: document.getElementById('payAgentName').value,
+                agentCode: document.getElementById('payAgentCode').value,
+                applicant: document.getElementById('payApplicant').value,
+                bank: document.getElementById('payBank').value,
+                product: document.getElementById('payProduct').value,
+                amount: document.getElementById('payAmount').value,
+                rate: document.getElementById('payRate').value
             };
 
             try {
@@ -209,55 +156,139 @@ document.addEventListener('DOMContentLoaded', () => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                const result = await res.json();
-                if (res.ok) {
-                    alert('Disbursed Case Saved & Payout Invoice Generated!');
+                const data = await res.json();
+                if (data.success) {
+                    alert('Payout Record Saved!');
                     addPayoutForm.reset();
                     loadPayouts();
-                } else {
-                    alert('Error: ' + (result.message || 'Failed to save payout'));
                 }
             } catch (err) {
-                console.error("Payout Error:", err);
-                alert('Server Error during saving payout.');
+                console.error(err);
             }
         });
     }
 
-    // Load initial data
-    loadPayouts();
+    // 6. USER/DSA REGISTRATION
+    const addUserForm = document.getElementById('addUserForm');
+    if (addUserForm) {
+        addUserForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                name: document.getElementById('usrName').value,
+                email: document.getElementById('usrEmail').value,
+                pass: document.getElementById('usrPass').value,
+                role: document.getElementById('usrRole').value
+            };
+
+            try {
+                const res = await fetch('/api/users/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert('DSA Registered!');
+                    addUserForm.reset();
+                    loadUsersList();
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        });
+    }
 });
 
-// Helper Functions
-async function loadPayouts() {
-    const tbody = document.getElementById('payoutTableBody');
-    if (!tbody) return;
-
+// FETCH AND RENDER FUNCTIONS
+async function loadLeads() {
     try {
-        const res = await fetch('/api/payouts/all');
-        const result = await res.json();
-        tbody.innerHTML = '';
-        const list = result.data || result || [];
-
-        list.forEach(item => {
-            tbody.innerHTML += `
+        const res = await fetch('/api/leads');
+        const data = await res.json();
+        const tbody = document.getElementById('leadsTableBody');
+        if (data.success && data.leads && data.leads.length > 0) {
+            tbody.innerHTML = data.leads.map(lead => `
                 <tr>
-                    <td><strong>${item.invoiceNumber || 'INV-000'}</strong></td>
-                    <td>${item.agentName || 'N/A'}<br><small class="text-muted">${item.agentEmail || ''}</small></td>
-                    <td>${item.applicantName || 'N/A'}<br><small class="text-muted">${item.bankName || ''}</small></td>
-                    <td><span class="badge bg-primary">${item.loanProduct || 'N/A'}</span></td>
-                    <td>₹${(item.disbursedAmount || 0).toLocaleString()}</td>
-                    <td>${item.payoutRate || 0}%</td>
-                    <td class="fw-bold text-success">₹${(item.netPayoutAmount || 0).toLocaleString()}</td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-dark" onclick="viewInvoice('${item._id}')">
-                            <i class="bi bi-file-earmark-pdf"></i> Invoice
-                        </button>
-                    </td>
+                    <td>${lead.fullName || lead.name || 'N/A'}</td>
+                    <td>${lead.phoneNumber || lead.phone || 'N/A'}</td>
+                    <td>${lead.loanType || lead.product || 'N/A'}</td>
+                    <td>${new Date(lead.createdAt || Date.now()).toLocaleDateString()}</td>
                 </tr>
-            `;
-        });
-    } catch (err) {
-        console.error("Load Payouts Error:", err);
-    }
+            `).join('');
+        }
+    } catch (err) { console.error(err); }
+}
+
+async function loadSM() {
+    try {
+        const res = await fetch('/api/sm');
+        const data = await res.json();
+        const tbody = document.getElementById('smTableBody');
+        if (data.success && data.sms && data.sms.length > 0) {
+            tbody.innerHTML = data.sms.map(sm => `
+                <tr>
+                    <td>${sm.state}</td>
+                    <td>${sm.city}</td>
+                    <td>${sm.name}</td>
+                    <td>${sm.mobile}</td>
+                    <td>${sm.product}</td>
+                </tr>
+            `).join('');
+        }
+    } catch (err) { console.error(err); }
+}
+
+async function loadBankConfigs() {
+    try {
+        const res = await fetch('/api/applications/bank-config');
+        const data = await res.json();
+        const tbody = document.getElementById('bankConfigTableBody');
+        if (data.success && data.configs && data.configs.length > 0) {
+            tbody.innerHTML = data.configs.map(cfg => `
+                <tr>
+                    <td>${cfg.bankName}</td>
+                    <td><a href="${cfg.portalUrl}" target="_blank">${cfg.portalUrl}</a></td>
+                    <td>${cfg.userId || 'N/A'}</td>
+                    <td>${cfg.bankPassword || '***'}</td>
+                </tr>
+            `).join('');
+        }
+    } catch (err) { console.error(err); }
+}
+
+async function loadPayouts() {
+    try {
+        const res = await fetch('/api/payouts');
+        const data = await res.json();
+        const tbody = document.getElementById('payoutTableBody');
+        if (data.success && data.payouts && data.payouts.length > 0) {
+            tbody.innerHTML = data.payouts.map(p => `
+                <tr>
+                    <td>${p.agentCode} - ${p.agentName}</td>
+                    <td>${p.applicant} (${p.bank})</td>
+                    <td>${p.product}</td>
+                    <td>₹${p.amount}</td>
+                    <td>${p.rate}%</td>
+                    <td>₹${(p.amount * p.rate) / 100}</td>
+                </tr>
+            `).join('');
+        }
+    } catch (err) { console.error(err); }
+}
+
+async function loadUsersList() {
+    try {
+        const res = await fetch('/api/users');
+        const data = await res.json();
+        const tbody = document.getElementById('usersListTableBody');
+        if (data.success && data.users && data.users.length > 0) {
+            tbody.innerHTML = data.users.map(u => `
+                <tr>
+                    <td><span class="badge bg-primary">${u.dsaCode || 'DSA' + u._id.slice(-4)}</span></td>
+                    <td>${u.name}</td>
+                    <td>${u.email}</td>
+                    <td>${u.role}</td>
+                </tr>
+            `).join('');
+        }
+    } catch (err) { console.error(err); }
 }
