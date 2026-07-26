@@ -1,24 +1,16 @@
 const mongoose = require('mongoose');
 
 const leadSchema = new mongoose.Schema({
+    dsaCode: { type: String, default: 'DIRECT' },
     applicantName: { type: String, required: true },
     phone: { type: String, required: true },
-    email: { type: String, default: '' },
-    city: { type: String, required: true },
-    loanProduct: { type: String, required: true }, // PL, HL, LAP, BL
-    monthlyIncome: { type: Number, required: true },
+    city: { type: String },
+    loanProduct: { type: String },
+    monthlyIncome: { type: Number, default: 0 },
     existingEmi: { type: Number, default: 0 },
     bouncingCount: { type: Number, default: 0 },
-    requestedAmount: { type: Number, required: true },
+    requestedAmount: { type: Number, default: 0 },
     
-    // Uploaded Documents Tracking
-    documents: {
-        panCard: { type: String, default: '' },
-        aadhaarCard: { type: String, default: '' },
-        bankStatement: { type: String, default: '' },
-        salarySlip: { type: String, default: '' }
-    },
-
     // CAM Engine Outputs
     camCalculated: {
         foirLimit: { type: Number, default: 50 },
@@ -28,8 +20,7 @@ const leadSchema = new mongoose.Schema({
         status: { type: String, enum: ['Eligible', 'Rejected'], default: 'Eligible' },
         rejectionReason: { type: String, default: '' }
     },
-
-    // Dynamically Filtered Eligible Banks for this File
+    
     eligibleBankIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'BankConfig' }]
 }, { timestamps: true });
 
