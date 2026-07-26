@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const Lead = require('../models/Lead');
+const BankConfig = require('../models/BankConfig');
 
-// 1. CREATE LEAD (Auto Source Detection & User Linking)
+// 1. CREATE LEAD WITH AUTO CAM & BANK MATCHING
 router.post('/create', async (req, res) => {
     try {
         const {
@@ -20,7 +21,7 @@ router.post('/create', async (req, res) => {
             customFields
         } = req.body;
 
-        // Auto-detect lead source
+        // Auto Source Detection
         let detectedSource = 'Customer (Online)';
         if (userRole === 'DSA' || userRole === 'AGENT') {
             detectedSource = 'DSA Agent';
@@ -28,25 +29,67 @@ router.post('/create', async (req, res) => {
             detectedSource = 'Admin / Staff';
         }
 
+        const income = Number(monthlyIncome) || 0;
+        const emi = Number(existingEmi) || 0;
+        const bounce = Number(bouncingCount) || 0;
+
+        // Fetch Active Banks for Matching
+        const activeBanks = await BankConfig.find({ isActive: true });
+        
+        let eligibleBankIds = [];
+        let maxEmiCapacity = 0;
+        let rejectionReason = '';
+
+        if (bounce > 2) {
+            rejectionReason = 'High Cheque / Mandate Bouncing Count';
+        } else {
+            activeBanks.forEach(bank => {
+                const minSal = bank.minSalary || 15000;
+                const foir = bank.foirPercent || 50;
+                const bankMaxEmi = (income * (foir / 100)) - emi;
+
+                if (income >= minSal && bankMaxEmi > 0) {
+                    eligibleBankIds.push(bank._id);
+                    if (bankMaxEmi > maxEmiCapacity) maxEmiCapacity = bankMaxEmi;
+                }
+            });
+        }
+
+        const status = eligibleBankIds.length > 0 ? 'Eligible' : 'Rejected';
+        if (eligibleBankIds.length === 0 && !rejectionReason) {
+            rejectionReason = 'Income / FOIR criteria not matched with active banks';
+        }
+
+        const calculatedApprovedAmount = Math.max(0, Math.round(maxEmiCapacity * 36));
+
         const newLead = new Lead({
             applicantName,
             phone,
             city,
             loanProduct,
-            monthlyIncome: Number(monthlyIncome) || 0,
-            existingEmi: Number(existingEmi) || 0,
-            bouncingCount: Number(bouncingCount) || 0,
+            monthlyIncome: income,
+            existingEmi: emi,
+            bouncingCount: bounce,
             requestedAmount: Number(requestedAmount) || 0,
             dsaCode: dsaCode || 'DIRECT',
             createdBy: createdBy || null,
             source: detectedSource,
-            customFields: customFields || {}
+            customFields: customFields || {},
+            camCalculated: {
+                foirLimit: 50,
+                maxEmiAllowed: Math.max(0, maxEmiCapacity),
+                approvedAmount: calculatedApprovedAmount,
+                status: status,
+                rejectionReason: status === 'Rejected' ? rejectionReason : ''
+            },
+            eligibleBankIds: eligibleBankIds
         });
 
         const savedLead = await newLead.save();
+
         res.status(201).json({
             success: true,
-            message: 'Lead created successfully',
+            message: 'Lead created and CAM evaluated successfully',
             data: savedLead
         });
     } catch (error) {
@@ -55,11 +98,12 @@ router.post('/create', async (req, res) => {
     }
 });
 
-// 2. FETCH ALL LEADS (With Auto User & Source Details)
+// 2. FETCH ALL LEADS (Populates CreatedBy & Eligible Banks)
 router.get('/all', async (req, res) => {
     try {
         const leads = await Lead.find()
             .populate('createdBy', 'name email role dsaCode')
+            .populate('eligibleBankIds', 'bankName minSalary foirPercent')
             .sort({ createdAt: -1 });
 
         res.status(200).json({
