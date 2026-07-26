@@ -1,345 +1,105 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DSA SaaS Engine - Master Control Panel</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <style>
-        .nav-pills .nav-link.active { background-color: #0d6efd; font-weight: bold; }
-        .card-custom { border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-    </style>
-</head>
-<body class="bg-light">
-
-<div class="container-fluid p-4">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded shadow-sm">
-        <h3 class="text-primary fw-bold mb-0"><i class="bi bi-shield-lock-fill"></i> DSA SaaS Engine - Master Control</h3>
-        <button class="btn btn-outline-danger btn-sm"><i class="bi bi-box-arrow-right"></i> Logout</button>
+<!-- ADD LEAD FORM MODAL -->
+<div class="modal fade" id="addLeadModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">Add New Lead</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="addLeadForm">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Applicant Name *</label>
+              <input type="text" id="leadApplicantName" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Phone Number *</label>
+              <input type="text" id="leadPhone" class="form-control" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">City</label>
+              <input type="text" id="leadCity" class="form-control">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Loan Product</label>
+              <select id="leadLoanProduct" class="form-select">
+                <option value="Personal Loan">Personal Loan</option>
+                <option value="Business Loan">Business Loan</option>
+                <option value="Home Loan">Home Loan</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Requested Amount</label>
+              <input type="number" id="leadRequestedAmount" class="form-control" value="0">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Monthly Income</label>
+              <input type="number" id="leadMonthlyIncome" class="form-control" value="0">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Existing EMI</label>
+              <input type="number" id="leadExistingEmi" class="form-control" value="0">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Bouncing Count</label>
+              <input type="number" id="leadBouncingCount" class="form-control" value="0">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">DSA Code</label>
+              <input type="text" id="leadDsaCode" class="form-control" value="DIRECT">
+            </div>
+          </div>
+          <div class="mt-4 text-end">
+            <button type="submit" class="btn btn-primary">Save Lead & Evaluate CAM</button>
+          </div>
+        </form>
+      </div>
     </div>
-
-    <!-- Navigation Tabs Bar -->
-    <ul class="nav nav-pills mb-4 bg-white p-2 rounded shadow-sm d-flex flex-wrap gap-2" id="pills-tab" role="tablist">
-        <li class="nav-item">
-            <button class="nav-link active" id="tab-apply-btn" data-bs-toggle="pill" data-bs-target="#tab-apply"><i class="bi bi-folder-symlink-fill"></i> File Login & Business Track</button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link" id="tab-sm-btn" data-bs-toggle="pill" data-bs-target="#tab-sm"><i class="bi bi-people-fill"></i> SM Directory & Upload</button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link" id="tab-leads-btn" data-bs-toggle="pill" data-bs-target="#tab-leads"><i class="bi bi-telephone-outbound-fill"></i> Calling Data & Leads</button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link" id="tab-banks-btn" data-bs-toggle="pill" data-bs-target="#tab-banks"><i class="bi bi-bank"></i> Bank Links & Credentials</button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link" id="tab-payouts-btn" data-bs-toggle="pill" data-bs-target="#tab-payouts"><i class="bi bi-receipt"></i> DSA Business & Payouts</button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link" id="tab-users-btn" data-bs-toggle="pill" data-bs-target="#tab-users"><i class="bi bi-person-plus-fill"></i> DSA / Agent Network</button>
-        </li>
-    </ul>
-
-    <!-- Tab Contents -->
-    <div class="tab-content" id="pills-tabContent">
-
-        <!-- TAB 1: FILE LOGIN -->
-        <div class="tab-pane fade show active" id="tab-apply">
-            <div class="card card-custom p-4 mb-4">
-                <h4 class="fw-bold text-primary mb-3"><i class="bi bi-cloud-arrow-up-fill"></i> Step 1: File Login & DSA Code Tracking</h4>
-                
-                <form id="fileLoginForm" class="row g-3">
-                    <div class="col-md-12 bg-light p-3 rounded border border-primary">
-                        <label class="form-label fw-bold text-primary mb-0"><i class="bi bi-card-heading"></i> Unique DSA Code (e.g. DSA101)</label>
-                        <input type="text" id="flDsaCode" class="form-control mt-1" required placeholder="Enter Registered Unique DSA Code (e.g., DSA101)">
-                    </div>
-
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold">Customer Full Name</label>
-                        <input type="text" id="flName" class="form-control" required placeholder="e.g. Rahul Sharma">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold">Mobile Number</label>
-                        <input type="text" id="flPhone" class="form-control" required placeholder="10 Digit Number">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold">City / Location</label>
-                        <input type="text" id="flCity" class="form-control" required placeholder="e.g. Bhilwara">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold">Loan Product</label>
-                        <select id="flProduct" class="form-select">
-                            <option value="PL">Personal Loan (PL)</option>
-                            <option value="HL">Home Loan (HL)</option>
-                            <option value="LAP">Loan Against Property (LAP)</option>
-                            <option value="BL">Business Loan (BL)</option>
-                        </select>
-                    </div>
-
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold">Monthly Net Salary (₹)</label>
-                        <input type="number" id="flIncome" class="form-control" required placeholder="e.g. 45000">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold">Current Total EMIs (₹)</label>
-                        <input type="number" id="flEmi" class="form-control" value="0" required placeholder="e.g. 10000">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold">Statement Bouncing Count</label>
-                        <input type="number" id="flBounce" class="form-control" value="0" required placeholder="0 if clean">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold">Requested Loan Amount (₹)</label>
-                        <input type="number" id="flReqAmt" class="form-control" required placeholder="e.g. 500000">
-                    </div>
-
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold">PAN Card (PDF/Image)</label>
-                        <input type="file" id="panCardFile" name="panCard" class="form-control">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold">Aadhaar Card (PDF/Image)</label>
-                        <input type="file" id="aadhaarCardFile" name="aadhaarCard" class="form-control">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold">Bank Statement (PDF)</label>
-                        <input type="file" id="bankStatementFile" name="bankStatement" class="form-control">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold">Salary Slip / ITR (PDF)</label>
-                        <input type="file" id="salarySlipFile" name="salarySlip" class="form-control">
-                    </div>
-
-                    <div class="col-12 text-end mt-4">
-                        <button type="submit" class="btn btn-primary btn-lg px-5 fw-bold">
-                            <i class="bi bi-cpu-fill"></i> Submit File Login
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- TAB 2: SM DIRECTORY -->
-        <div class="tab-pane fade" id="tab-sm">
-            <div class="card card-custom p-4 mb-4">
-                <h5 class="fw-bold text-dark"><i class="bi bi-file-earmark-excel-fill text-success"></i> Bulk Excel Upload All India SM List</h5>
-                <form id="bulkSmForm" class="row g-2 mt-2">
-                    <div class="col-md-8"><input type="file" id="smExcelFile" class="form-control" accept=".xlsx, .xls" required></div>
-                    <div class="col-md-4"><button type="submit" class="btn btn-success w-100"><i class="bi bi-upload"></i> Import Excel</button></div>
-                </form>
-            </div>
-
-            <div class="card card-custom p-4 mb-4">
-                <h5 class="fw-bold text-dark"><i class="bi bi-person-plus-fill text-primary"></i> Add Single Sales Manager Entry</h5>
-                <form id="addSmForm" class="row g-2 mt-2">
-                    <div class="col-md-2"><input type="text" id="smState" class="form-control" placeholder="State" required></div>
-                    <div class="col-md-2"><input type="text" id="smCity" class="form-control" placeholder="City / District" required></div>
-                    <div class="col-md-3"><input type="text" id="smName" class="form-control" placeholder="SM Name" required></div>
-                    <div class="col-md-2"><input type="text" id="smMobile" class="form-control" placeholder="Mobile" required></div>
-                    <div class="col-md-2">
-                        <select id="smProduct" class="form-select">
-                            <option value="HL">HL</option>
-                            <option value="LAP">LAP</option>
-                            <option value="PL">PL</option>
-                            <option value="BL">BL</option>
-                            <option value="All">All Products</option>
-                        </select>
-                    </div>
-                    <div class="col-md-1"><button type="submit" class="btn btn-primary w-100">Save</button></div>
-                </form>
-            </div>
-
-            <!-- SM Directory Table -->
-            <div class="card card-custom p-4">
-                <h5 class="fw-bold text-dark mb-3"><i class="bi bi-journal-text"></i> Sales Managers List</h5>
-                <div class="table-responsive">
-                    <table class="table table-bordered align-middle">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>State</th>
-                                <th>City</th>
-                                <th>SM Name</th>
-                                <th>Mobile</th>
-                                <th>Product</th>
-                            </tr>
-                        </thead>
-                        <tbody id="smTableBody">
-                            <tr><td colspan="5" class="text-center text-muted">No SM records added yet.</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 3: CALLING DATA & LEADS -->
-        <div class="tab-pane fade" id="tab-leads">
-            <div class="card card-custom p-4 mb-4">
-                <h5 class="fw-bold text-dark"><i class="bi bi-telephone-plus-fill text-primary"></i> Add Calling Lead</h5>
-                <form id="addLeadForm" class="row g-2 mt-2">
-                    <div class="col-md-4"><input type="text" id="leadName" class="form-control" placeholder="Full Name" required></div>
-                    <div class="col-md-4"><input type="text" id="leadPhone" class="form-control" placeholder="Phone Number" required></div>
-                    <div class="col-md-2">
-                        <select id="leadType" class="form-select">
-                            <option value="Personal Loan">Personal Loan</option>
-                            <option value="Home Loan">Home Loan</option>
-                            <option value="Business Loan">Business Loan</option>
-                            <option value="LAP">LAP</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2"><button type="submit" class="btn btn-success w-100">Add Lead</button></div>
-                </form>
-            </div>
-
-            <!-- Calling Leads Table -->
-            <div class="card card-custom p-4">
-                <h5 class="fw-bold text-dark mb-3"><i class="bi bi-list-task"></i> Calling Data & Leads List</h5>
-                <div class="table-responsive">
-                    <table class="table table-bordered align-middle">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Full Name</th>
-                                <th>Phone Number</th>
-                                <th>Loan Type</th>
-                                <th>Date Added</th>
-                            </tr>
-                        </thead>
-                        <tbody id="leadsTableBody">
-                            <tr><td colspan="4" class="text-center text-muted">No leads available.</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 4: BANK LINKS & CREDENTIALS -->
-        <div class="tab-pane fade" id="tab-banks">
-            <div class="card card-custom p-4 mb-4">
-                <h5 class="fw-bold text-dark"><i class="bi bi-key-fill text-warning"></i> Add Bank ID/Password or UTM Link</h5>
-                <form id="addBankConfigForm" class="row g-2 mt-2">
-                    <div class="col-md-3"><input type="text" id="bankName" class="form-control" placeholder="Bank Name" required></div>
-                    <div class="col-md-3"><input type="url" id="portalUrl" class="form-control" placeholder="Portal URL / UTM Link" required></div>
-                    <div class="col-md-2"><input type="text" id="userId" class="form-control" placeholder="User ID / Code"></div>
-                    <div class="col-md-2"><input type="text" id="bankPassword" class="form-control" placeholder="Password"></div>
-                    <div class="col-md-2"><button type="submit" class="btn btn-dark w-100">Save Config</button></div>
-                </form>
-            </div>
-
-            <!-- Bank Links Table -->
-            <div class="card card-custom p-4">
-                <h5 class="fw-bold text-dark mb-3"><i class="bi bi-bank2"></i> Saved Bank Links & Credentials</h5>
-                <div class="table-responsive">
-                    <table class="table table-bordered align-middle">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Bank Name</th>
-                                <th>Portal / UTM Link</th>
-                                <th>User ID</th>
-                                <th>Password</th>
-                            </tr>
-                        </thead>
-                        <tbody id="bankConfigTableBody">
-                            <tr><td colspan="4" class="text-center text-muted">No Bank Configurations saved.</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 5: BANK PAYOUTS & INVOICES -->
-        <div class="tab-pane fade" id="tab-payouts">
-            <div class="card card-custom p-4 mb-4">
-                <h5 class="fw-bold text-dark"><i class="bi bi-plus-circle-fill text-success"></i> Add Disbursed Case & Calculate DSA Payout</h5>
-                <form id="addPayoutForm" class="row g-2 mt-2">
-                    <div class="col-md-2"><input type="text" id="payAgentName" class="form-control" placeholder="DSA Partner Name" required></div>
-                    <div class="col-md-2"><input type="text" id="payAgentCode" class="form-control" placeholder="Unique DSA Code" required></div>
-                    <div class="col-md-2"><input type="text" id="payApplicant" class="form-control" placeholder="Customer Name" required></div>
-                    <div class="col-md-2"><input type="text" id="payBank" class="form-control" placeholder="Bank Name" required></div>
-                    <div class="col-md-1">
-                        <select id="payProduct" class="form-select">
-                            <option value="HL">HL</option>
-                            <option value="LAP">LAP</option>
-                            <option value="PL">PL</option>
-                            <option value="BL">BL</option>
-                        </select>
-                    </div>
-                    <div class="col-md-1"><input type="number" id="payAmount" class="form-control" placeholder="Disbursed Amt" required></div>
-                    <div class="col-md-1"><input type="number" step="0.01" id="payRate" class="form-control" placeholder="Payout %" required></div>
-                    <div class="col-md-1"><button type="submit" class="btn btn-success w-100">Save</button></div>
-                </form>
-            </div>
-
-            <div class="card card-custom p-4">
-                <h5 class="fw-bold text-dark mb-3"><i class="bi bi-journal-check"></i> DSA Business Ledger</h5>
-                <div class="table-responsive">
-                    <table class="table table-striped align-middle">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>DSA Code & Name</th>
-                                <th>Customer / Bank</th>
-                                <th>Product</th>
-                                <th>Disbursed Amt</th>
-                                <th>Payout (%)</th>
-                                <th>Total Commission</th>
-                            </tr>
-                        </thead>
-                        <tbody id="payoutTableBody">
-                            <tr><td colspan="6" class="text-center text-muted">No payout cases recorded.</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 6: AGENT / USERS NETWORK -->
-        <div class="tab-pane fade" id="tab-users">
-            <div class="card card-custom p-4 mb-4">
-                <h5 class="fw-bold text-dark"><i class="bi bi-person-badge-fill text-info"></i> Register New DSA Partner</h5>
-                <form id="addUserForm" class="row g-2 mt-2">
-                    <div class="col-md-3"><input type="text" id="usrName" class="form-control" placeholder="DSA Full Name" required></div>
-                    <div class="col-md-3"><input type="email" id="usrEmail" class="form-control" placeholder="DSA Email ID" required></div>
-                    <div class="col-md-2"><input type="password" id="usrPass" class="form-control" placeholder="Password" required></div>
-                    <div class="col-md-2">
-                        <select id="usrRole" class="form-select">
-                            <option value="DSA">DSA Partner</option>
-                            <option value="Calling Staff">Calling Staff</option>
-                            <option value="Customer">Customer</option>
-                            <option value="Admin">Admin</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2"><button type="submit" class="btn btn-info text-white w-100 fw-bold">Generate ID & Register</button></div>
-                </form>
-            </div>
-
-            <div class="card card-custom p-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="fw-bold text-dark mb-0"><i class="bi bi-search"></i> DSA Network Search & Directory</h5>
-                    <button class="btn btn-outline-primary btn-sm" onclick="loadUsersList()"><i class="bi bi-arrow-clockwise"></i> Refresh List</button>
-                </div>
-                
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover align-middle">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Unique DSA Code</th>
-                                <th>DSA Partner Name</th>
-                                <th>Email Address</th>
-                                <th>Role</th>
-                            </tr>
-                        </thead>
-                        <tbody id="usersListTableBody">
-                            <tr><td colspan="4" class="text-center text-muted">Click Refresh to Load Registered DSAs...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-    </div>
+  </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="script.js"></script>
-</body>
-</html>
+<!-- ADD BANK CONFIG MODAL -->
+<div class="modal fade" id="addBankModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title">Add / Edit Bank Configuration</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="addBankForm">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Bank Name *</label>
+              <input type="text" id="bankName" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Bank Code</label>
+              <input type="text" id="bankCode" class="form-control" placeholder="HDFC, ICICI, etc.">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Min Salary (₹)</label>
+              <input type="number" id="bankMinSalary" class="form-control" value="15000">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">FOIR Limit (%)</label>
+              <input type="number" id="bankFoirPercent" class="form-control" value="50">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Min CIBIL</label>
+              <input type="number" id="bankMinCibil" class="form-control" value="650">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Payout Commission (%)</label>
+              <input type="number" step="0.1" id="bankPayoutPercent" class="form-control" value="1.5">
+            </div>
+          </div>
+          <div class="mt-4 text-end">
+            <button type="submit" class="btn btn-success">Save Bank Criteria</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
