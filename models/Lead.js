@@ -1,11 +1,28 @@
 const mongoose = require('mongoose');
 
 const leadSchema = new mongoose.Schema({
+    // DSA Details
     dsaCode: { 
         type: String, 
         default: 'DIRECT',
         trim: true 
     },
+    
+    // Who created or submitted this lead
+    createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null
+    },
+
+    // Source Tracking: 'Customer (Online)', 'DSA Agent', 'Admin / Staff'
+    source: {
+        type: String,
+        enum: ['Customer (Online)', 'DSA Agent', 'Admin / Staff'],
+        default: 'Customer (Online)'
+    },
+
+    // Applicant Details
     applicantName: { 
         type: String, 
         required: [true, 'Applicant name is required'],
@@ -32,7 +49,7 @@ const leadSchema = new mongoose.Schema({
     requestedAmount: { type: Number, default: 0 },
     
     // Dynamic / Extra Form Fields
-    customFields: { type: Object, default: {} }, 
+    customFields: { type: mongoose.Schema.Types.Mixed, default: {} }, 
 
     // CAM Engine Outputs
     camCalculated: {
@@ -42,24 +59,25 @@ const leadSchema = new mongoose.Schema({
         abbAmount: { type: Number, default: 0 },
         status: { 
             type: String, 
-            enum: ['Eligible', 'Rejected', 'Pending', 'In Review', 'eligible', 'rejected'], 
+            enum: ['Eligible', 'Rejected', 'Pending', 'In Review'], 
             default: 'Eligible' 
         },
         rejectionReason: { type: String, default: '' }
     },
 
-    // Reference to Bank Config Collection
+    // Bank Reference
     eligibleBankIds: [{ 
         type: mongoose.Schema.Types.ObjectId, 
         ref: 'BankConfig' 
     }]
 }, { 
-    timestamps: true, // Automatically manages createdAt and updatedAt
-    strict: false     // Allows storing dynamic payload fields if needed
+    timestamps: true,
+    strict: false 
 });
 
-// Performance Index for MongoDB Atlas queries (Dashboard/Board speed increases)
+// Atlas Indexes
 leadSchema.index({ createdAt: -1 });
 leadSchema.index({ dsaCode: 1 });
+leadSchema.index({ source: 1 });
 
 module.exports = mongoose.model('Lead', leadSchema);

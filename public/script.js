@@ -1,50 +1,55 @@
-// =========================================================
-// 🚀 DSA SAAS ENGINE - FILE & LEAD AUTOMATION ENGINE
-// =========================================================
+// Function to Auto Fetch and Render Leads on Dashboard Table
+async function fetchAndRenderLeads() {
+    try {
+        const response = await fetch('/api/leads/all');
+        const result = await response.json();
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Page load hone par saare forms detect karein
-    const forms = document.querySelectorAll('form');
-    
-    forms.forEach(form => {
-        form.addEventListener('submit', async function (e) {
-            e.preventDefault();
-            
-            // UI Loading indicator
-            const submitBtn = form.querySelector('button[type="submit"]') || form.querySelector('button');
-            const originalBtnText = submitBtn ? submitBtn.innerHTML : 'Submit';
-            if (submitBtn) submitBtn.innerText = 'Saving Data & Files...';
+        if (!result.success) {
+            console.error('Failed to fetch leads:', result.message);
+            return;
+        }
 
-            try {
-                // Multi-part Form Data (Handles Text + PDF/Image Files)
-                const formData = new FormData(form);
+        const leadsTableBody = document.getElementById('leadsTableBody');
+        if (!leadsTableBody) return;
 
-                // API Route Call
-                const response = await fetch('/api/leads/add', {
-                    method: 'POST',
-                    body: formData // Sends both text fields & files directly
-                });
+        leadsTableBody.innerHTML = '';
 
-                const result = await response.json();
+        result.data.forEach(lead => {
+            // Source Badge Styling
+            let sourceBadgeClass = 'bg-info text-dark';
+            if (lead.source === 'DSA Agent') sourceBadgeClass = 'bg-warning text-dark';
+            if (lead.source === 'Customer (Online)') sourceBadgeClass = 'bg-primary';
 
-                if (response.ok && (result.success || result._id)) {
-                    alert('✅ File Login Data Successfully Saved!');
-                    form.reset();
-                    if (typeof loadBoardData === 'function') loadBoardData();
-                } else {
-                    alert('❌ Save Failed: ' + (result.message || 'Unknown Server Error'));
-                }
-            } catch (err) {
-                console.error('Submission Error:', err);
-                alert('❌ Server Connection Error! Check backend logs.');
-            } finally {
-                if (submitBtn) submitBtn.innerHTML = originalBtnText;
-            }
+            // User Info who created
+            const creatorName = lead.createdBy ? lead.createdBy.name : 'Guest Customer';
+            const creatorRole = lead.createdBy ? `(${lead.createdBy.role})` : '';
+
+            const row = `
+                <tr>
+                    <td><strong>${lead.applicantName}</strong><br><small class="text-muted">${lead.phone}</small></td>
+                    <td>${lead.loanProduct}</td>
+                    <td>₹${lead.requestedAmount.toLocaleString('en-IN')}</td>
+                    <td>
+                        <span class="badge ${sourceBadgeClass}">${lead.source}</span>
+                    </td>
+                    <td>
+                        <small><strong>${creatorName}</strong> ${creatorRole}</small><br>
+                        <small class="text-muted">DSA Code: ${lead.dsaCode}</small>
+                    </td>
+                    <td>
+                        <span class="badge bg-${lead.camCalculated.status === 'Eligible' ? 'success' : 'danger'}">
+                            ${lead.camCalculated.status}
+                        </span>
+                    </td>
+                    <td>${new Date(lead.createdAt).toLocaleDateString('en-IN')}</td>
+                </tr>
+            `;
+            leadsTableBody.insertAdjacentHTML('beforeend', row);
         });
-    });
-
-    // Initial Load for Table/Board
-    if (typeof loadBoardData === 'function') {
-        loadBoardData();
+    } catch (error) {
+        console.error('Error in fetching leads:', error);
     }
-});
+}
+
+// Auto Fetch On Page Load
+document.addEventListener('DOMContentLoaded', fetchAndRenderLeads);
