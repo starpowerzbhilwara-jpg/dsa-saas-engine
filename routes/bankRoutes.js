@@ -2,77 +2,112 @@ const express = require('express');
 const router = express.Router();
 const BankConfig = require('../models/BankConfig');
 
-// Add or Update Bank / UTM Config
-router.post('/add', async (req, res) => {
+// 1. GET ALL BANKS CONFIG (For Admin Dashboard)
+router.get('/all', async (req, res) => {
     try {
-        const { bankName, portalType, portalUrl, userId, password, payoutPercentage, productsSupported, adminOtpPhone } = req.body;
-        
-        const newConfig = new BankConfig({
-            bankName,
-            portalType: portalType || 'UTM Link',
-            portalUrl,
-            userId,
-            password,
-            payoutPercentage: payoutPercentage || 0,
-            productsSupported: productsSupported || ['PL', 'HL', 'LAP', 'BL'],
-            adminOtpPhone: adminOtpPhone || '+91-9876543210'
+        const banks = await BankConfig.find().sort({ createdAt: -1 });
+        res.status(200).json({
+            success: true,
+            count: banks.length,
+            data: banks
         });
-
-        await newConfig.save();
-        return res.status(200).json({ status: 'success', message: 'Bank Config saved successfully!', data: newConfig });
     } catch (error) {
-        return res.status(500).json({ status: 'error', message: error.message });
+        console.error('Error fetching banks:', error);
+        res.status(500).json({ success: false, message: error.message });
     }
 });
 
-// Get All Bank Configs
-router.get('/all-configs', async (req, res) => {
+// 2. CREATE OR UPDATE BANK CONFIG
+router.post('/save', async (req, res) => {
     try {
-        const configs = await BankConfig.find({ isActive: true }).sort({ createdAt: -1 });
-        return res.status(200).json({ status: 'success', data: configs });
-    } catch (error) {
-        return res.status(500).json({ status: 'error', message: error.message });
-    }
-});
+        const {
+            _id,
+            bankName,
+            code,
+            minSalary,
+            foirPercent,
+            minCibil,
+            maxBouncingAllowed,
+            interestRate,
+            maxTenureMonths,
+            payoutPercentage,
+            isActive
+        } = req.body;
 
-// Auto-Eligibility & Statement CAM Analysis Engine
-router.post('/analyze-eligibility', async (req, res) => {
-    try {
-        const { monthlySalary, existingEmi, bouncedCheques, requestedLoan } = req.body;
-        
-        const netIncome = Number(monthlySalary) || 25000;
-        const totalEmi = Number(existingEmi) || 0;
-        const bouncing = Number(bouncedCheques) || 0;
-        
-        const foir = 0.50; // 50% FOIR Limit
-        const maxAllowedEmi = (netIncome * foir) - totalEmi;
-        
-        let status = 'Eligible';
-        let rejectReason = '';
-        
-        if (bouncing > 2) {
-            status = 'Rejected';
-            rejectReason = 'High Bank Bouncing (>2 instances detected)';
-        } else if (maxAllowedEmi <= 0) {
-            status = 'Rejected';
-            rejectReason = 'FOIR Exceeded / High Existing Loan EMI Obligations';
+        let bank;
+        if (_id) {
+            // Update existing bank
+            bank = await BankConfig.findByIdAndUpdate(
+                _id,
+                {
+                    bankName,
+                    code,
+                    minSalary: Number(minSalary) || 0,
+                    foirPercent: Number(foirPercent) || 50,
+                    minCibil: Number(minCibil) || 650,
+                    maxBouncingAllowed: Number(maxBouncingAllowed) || 0,
+                    interestRate: Number(interestRate) || 0,
+                    maxTenureMonths: Number(maxTenureMonths) || 60,
+                    payoutPercentage: Number(payoutPercentage) || 0,
+                    isActive: isActive !== undefined ? isActive : true
+                },
+                { new: true }
+            );
+        } else {
+            // Create new bank
+            bank = new BankConfig({
+                bankName,
+                code,
+                minSalary: Number(minSalary) || 0,
+                foirPercent: Number(foirPercent) || 50,
+                minCibil: Number(minCibil) || 650,
+                maxBouncingAllowed: Number(maxBouncingAllowed) || 0,
+                interestRate: Number(interestRate) || 0,
+                maxTenureMonths: Number(maxTenureMonths) || 60,
+                payoutPercentage: Number(payoutPercentage) || 0,
+                isActive: isActive !== undefined ? isActive : true
+            });
+            await bank.save();
         }
 
-        const calculatedLoanLimit = Math.max(0, maxAllowedEmi * 48); // 4 Years Tenure
-
-        return res.status(200).json({
-            status: 'success',
-            data: {
-                status,
-                rejectReason,
-                abb: netIncome * 0.40, // Estimated Average Bank Balance
-                bouncingCount: bouncing,
-                maxAllowedEmi: maxAllowedEmi > 0 ? maxAllowedEmi : 0,
-                approvedLoanAmount: Math.min(calculatedLoanLimit, Number(requestedLoan) || 500000)
-            }
+        res.status(200).json({
+            success: true,
+            message: 'Bank configuration saved successfully',
+            data: bank
         });
     } catch (error) {
-        return res.status(500).json({ status: 'error', message: error.message });
+        console.error('Error saving bank config:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// 3. TOGGLE BANK ACTIVE/INACTIVE STATUS
+router.patch('/toggle-status/:id', async (req, res) => {
+    try {
+        const bank = await BankConfig.findById(req.params.id);
+        if (!bank) {
+            return res.status(404).json({ success: false, message: 'Bank not found' });
+        }
+        bank.isActive = !bank.isActive;
+        await bank.save();
+
+        res.status(200).json({
+            success: true,
+            message: `Bank status changed to ${bank.isActive ? 'Active' : 'Inactive'}`,
+            data: bank
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// 4. DELETE BANK CONFIG
+router.delete('/delete/:id', async (req, res) => {
+    try {
+        await BankConfig.findByIdAndDelete(req.params.id);
+        res.status(200).json({ success: true, message: 'Bank configuration deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
     }
 });
 
